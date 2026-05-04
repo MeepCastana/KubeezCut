@@ -1,8 +1,14 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { PreviewArea } from './preview-area';
 import { useMaskEditorStore, useItemsStore } from '@/features/editor/deps/preview';
 import { useEditorStore } from '@/shared/state/editor';
+import { TooltipProvider } from '@/components/ui/tooltip';
+
+function renderWithProviders(ui: ReactElement) {
+  return render(<TooltipProvider>{ui}</TooltipProvider>);
+}
 
 vi.mock('@/features/editor/deps/preview', async () => {
   const actual = await vi.importActual<typeof import('@/features/editor/deps/preview')>(
@@ -79,7 +85,7 @@ describe('PreviewArea mask editor toolbar', () => {
     ]);
     useMaskEditorStore.getState().startEditing('path-1');
 
-    render(
+    renderWithProviders(
       <PreviewArea
         project={{ width: 1920, height: 1080, fps: 30 }}
       />
@@ -132,7 +138,7 @@ describe('PreviewArea mask editor toolbar', () => {
     ]);
     useMaskEditorStore.getState().startEditing('path-1');
 
-    render(
+    renderWithProviders(
       <PreviewArea
         project={{ width: 1920, height: 1080, fps: 30 }}
       />
@@ -152,7 +158,7 @@ describe('PreviewArea mask editor toolbar', () => {
       mediaSkimPreviewFrame: 24,
     });
 
-    render(
+    renderWithProviders(
       <PreviewArea
         project={{ width: 1920, height: 1080, fps: 30 }}
       />
@@ -169,7 +175,7 @@ describe('PreviewArea mask editor toolbar', () => {
       compoundClipSkimPreviewFrame: 42,
     });
 
-    render(
+    renderWithProviders(
       <PreviewArea
         project={{ width: 1920, height: 1080, fps: 30 }}
       />
@@ -209,7 +215,7 @@ describe('PreviewArea mask editor toolbar', () => {
     ]);
     useMaskEditorStore.getState().startEditing('path-1');
 
-    render(
+    renderWithProviders(
       <PreviewArea
         project={{ width: 1920, height: 1080, fps: 30 }}
       />
@@ -257,7 +263,7 @@ describe('PreviewArea mask editor toolbar', () => {
     ]);
     useMaskEditorStore.getState().startEditing('path-1');
 
-    render(
+    renderWithProviders(
       <PreviewArea
         project={{ width: 1920, height: 1080, fps: 30 }}
       />

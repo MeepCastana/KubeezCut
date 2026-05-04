@@ -380,6 +380,8 @@ export interface GenerateTextToImageParams {
   preferVideoOutput?: boolean;
   /** Optional body field for models that accept it (e.g. P Image Edit `turbo`). */
   quality?: string;
+  /** Optional body field for models that accept it (e.g. GPT Image 2 `1K|2K|4K`). */
+  resolution?: string;
 }
 
 /**
@@ -404,6 +406,7 @@ export async function generateKubeezMediaBlob(params: GenerateTextToImageParams)
     duration,
     preferVideoOutput = false,
     quality,
+    resolution,
   } = params;
 
   const root = resolveKubeezApiBaseUrl(baseUrl);
@@ -435,6 +438,9 @@ export async function generateKubeezMediaBlob(params: GenerateTextToImageParams)
   }
   if (quality !== undefined && quality !== '') {
     body.quality = quality;
+  }
+  if (resolution !== undefined && resolution !== '') {
+    body.resolution = resolution;
   }
 
   const startRes = await fetch(`${root}/v1/generate/media`, {

@@ -372,10 +372,10 @@ function registryFamiliesToGridItems(families: RegistryFamilyBucket[]): KubeezMo
   const out: KubeezModelGridItem[] = [];
   for (const f of families) {
     const deduped = dedupeModelsById(f.variants).sort((a, b) => a.model_id.localeCompare(b.model_id));
-    if (deduped.length === 1) {
-      out.push({ kind: 'model', m: deduped[0]! });
-      continue;
-    }
+    if (deduped.length === 0) continue;
+    // Keep single-variant families as `model-family` so the dialog still receives the
+    // baseCardId and can render dedicated UI (e.g. gpt-image-2's 1K/2K/4K toggle —
+    // the model_id is the same for all resolutions, so the family always has 1 variant).
     out.push({
       kind: 'model-family',
       mediaKind: f.mediaKind,

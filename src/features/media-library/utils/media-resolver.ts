@@ -120,8 +120,21 @@ export async function resolveMediaUrls(
   const useProxy = options?.useProxy ?? true;
   const signal = options?.signal;
 
-  // Deep clone tracks to avoid mutating original
-  const resolvedTracks: TimelineTrack[] = JSON.parse(JSON.stringify(tracks));
+  // Shallow-clone tracks and only the media items we'll rewrite `src` on.
+  // Non-media items keep their original ref — this preserves React.memo and the
+  // canonical-JSON WeakMap cache used by the preview invalidation path.
+  const resolvedTracks: TimelineTrack[] = tracks.map((track) => ({
+    ...track,
+    items: track.items.map((item) => {
+      if (
+        item.mediaId &&
+        (item.type === 'video' || item.type === 'audio' || item.type === 'image')
+      ) {
+        return { ...item };
+      }
+      return item;
+    }),
+  }));
 
   // Resolve all media URLs in parallel
   const resolutionPromises: Promise<void>[] = [];

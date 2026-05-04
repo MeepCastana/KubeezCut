@@ -14,9 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -990,6 +988,10 @@ export function KubeezGenerateImageDialog({
                 : isSeedreamQualityModel(mediaGenModelId)
                   ? imageQuality
                   : undefined,
+            resolution:
+              mediaGenModelId === 'gpt-image-2'
+                ? ({ '1k': '1K', '2k': '2K', '4k': '4K' } as const)[submitSettings.imageResolution ?? '1k']
+                : undefined,
           },
           timelinePlacement,
           playheadFrame,
@@ -1443,25 +1445,11 @@ export function KubeezGenerateImageDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-[min(340px,50vh)]">
-                      {(() => {
-                        const groups = new Map<string, typeof KUBEEZ_DIALOGUE_VOICE_OPTIONS>();
-                        for (const v of KUBEEZ_DIALOGUE_VOICE_OPTIONS) {
-                          const cat = v.category ?? 'Other';
-                          let list = groups.get(cat);
-                          if (!list) { list = []; groups.set(cat, list); }
-                          list.push(v);
-                        }
-                        return [...groups.entries()].map(([cat, voices]) => (
-                          <SelectGroup key={cat}>
-                            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">{cat}</SelectLabel>
-                            {voices.map((v) => (
-                              <SelectItem key={v.id} value={v.id}>
-                                {v.label}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        ));
-                      })()}
+                      {KUBEEZ_DIALOGUE_VOICE_OPTIONS.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

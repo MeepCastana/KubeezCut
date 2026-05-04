@@ -124,6 +124,7 @@ const OFFLINE_BROWSE_IMAGE_MODELS: KubeezMediaModelOption[] = [
   img({ model_id: 'flux-2-edit-2K', display_name: 'Flux 2 Edit 2K', provider: 'Black Forest Labs' }),
   img({ model_id: 'gpt-1.5-image-high', display_name: 'GPT 1.5 Image High', provider: 'OpenAI' }),
   img({ model_id: 'gpt-1.5-image-medium', display_name: 'GPT 1.5 Image Medium', provider: 'OpenAI' }),
+  img({ model_id: 'gpt-image-2', display_name: 'GPT Image 2', provider: 'OpenAI' }),
   img({ model_id: 'grok-image-to-image', display_name: 'Grok Image to image', provider: 'xAI' }),
   img({ model_id: 'grok-text-to-image', display_name: 'Grok Text to image', provider: 'xAI' }),
   img({ model_id: 'imagen-4', display_name: 'Imagen 4', provider: 'Google' }),
@@ -155,7 +156,6 @@ const OFFLINE_BROWSE_MUSIC_MODELS: KubeezMediaModelOption[] = [
   mus({ model_id: 'V4_5PLUS', display_name: 'V4.5+', provider: 'Kubeez' }),
   mus({ model_id: 'V5', display_name: 'V5', provider: 'Kubeez' }),
   mus({ model_id: 'V5_5', display_name: 'V5.5', provider: 'Kubeez' }),
-  mus({ model_id: 'suno-lyrics-generation', display_name: 'Lyrics generation', provider: 'Kubeez' }),
 ];
 
 export function getKubeezOfflineBrowseCatalog(): {

@@ -40,12 +40,17 @@ export function getMaxTransitionDurationForHandles(
   leftClip: TimelineItem,
   rightClip: TimelineItem,
   alignment: number | undefined,
+  options?: { handleConstraint?: 'strict' | 'permissive' },
 ): number {
+  const handleConstraint = options?.handleConstraint ?? 'permissive';
+  const getHandle =
+    handleConstraint === 'strict' ? getAvailableHandle : getEffectiveTransitionHandle;
+
   const maxByClipDuration = Math.floor(Math.min(leftClip.durationInFrames, rightClip.durationInFrames) - 1);
   if (maxByClipDuration < 1) return 0;
 
-  const leftHandle = getEffectiveTransitionHandle(leftClip, 'end');
-  const rightHandle = getEffectiveTransitionHandle(rightClip, 'start');
+  const leftHandle = getHandle(leftClip, 'end');
+  const rightHandle = getHandle(rightClip, 'start');
 
   for (let duration = maxByClipDuration; duration >= 1; duration -= 1) {
     const portions = calculateTransitionPortions(duration, alignment);

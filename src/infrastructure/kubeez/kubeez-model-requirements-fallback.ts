@@ -91,6 +91,9 @@ const EXACT: Record<string, Partial<KubeezMediaModelOption>> = {
   'gpt-1.5-image-medium': { prompt_max_chars: 3000, aspectRatioOptions: ['1:1', '2:3', '3:2'] },
   'gpt-1.5-image-high': { prompt_max_chars: 3000, aspectRatioOptions: ['1:1', '2:3', '3:2'] },
 
+  // GPT Image 2 — API also accepts 'auto' but the picker uses the default set.
+  'gpt-image-2': { prompt_max_chars: 20_000, aspectRatioOptions: [...DEFAULT_IMAGE_ASPECTS] },
+
   'qwen-text-to-image': { prompt_max_chars: 5000, aspectRatioOptions: [...DEFAULT_IMAGE_ASPECTS] },
   'qwen-image-to-image': { prompt_max_chars: 5000, aspectRatioOptions: [...DEFAULT_IMAGE_ASPECTS] },
 
@@ -148,7 +151,6 @@ const EXACT: Record<string, Partial<KubeezMediaModelOption>> = {
   V4_5PLUS: { prompt_max_chars: 400 },
   V5: { prompt_max_chars: 400 },
   V5_5: { prompt_max_chars: 400 },
-  'suno-lyrics-generation': { prompt_max_chars: 400 },
 };
 
 /**

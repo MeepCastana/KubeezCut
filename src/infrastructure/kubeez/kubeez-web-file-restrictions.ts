@@ -326,6 +326,14 @@ export function getFileLimitForModel(
     };
   }
 
+  // GPT Image 2: supports up to 16 images for image-to-image mode
+  if (model === 'gpt-image-2') {
+    return {
+      maxFiles: 16,
+      message: 'GPT Image 2: Max 16 images for image-to-image mode',
+    };
+  }
+
   // Default: no limit
   return {
     maxFiles: Infinity,

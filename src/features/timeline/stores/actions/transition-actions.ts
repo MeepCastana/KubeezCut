@@ -57,12 +57,26 @@ export function addTransition(
     const leftEnd = leftClip.from + leftClip.durationInFrames;
     const isAdjacent = areFramesAligned(leftEnd, rightClip.from);
     if (isAdjacent) {
-      const maxHandleDuration = getMaxTransitionDurationForHandles(leftClip, rightClip, 0.5);
-      if (maxHandleDuration < 1) {
-        getLogger().warn('[addTransition] Cannot add transition: insufficient source handle at cut');
-        return false;
+      // Use strict (hidden-handle-only) for default-duration clamp so the applied
+      // duration reflects real source availability rather than the body fallback.
+      const maxStrictHandleDuration = getMaxTransitionDurationForHandles(
+        leftClip,
+        rightClip,
+        0.5,
+        { handleConstraint: 'strict' },
+      );
+      if (maxStrictHandleDuration > 0) {
+        duration = Math.min(duration, maxStrictHandleDuration);
+      } else {
+        // No real source handle — fall back to permissive (razor-cut) behaviour
+        // so two adjacent full clips can still receive a transition.
+        const maxPermissiveDuration = getMaxTransitionDurationForHandles(leftClip, rightClip, 0.5);
+        if (maxPermissiveDuration < 1) {
+          getLogger().warn('[addTransition] Cannot add transition: insufficient source handle at cut');
+          return false;
+        }
+        duration = Math.min(duration, maxPermissiveDuration);
       }
-      duration = Math.min(duration, maxHandleDuration);
     }
 
     // Validate that transition can be added (includes handle check)

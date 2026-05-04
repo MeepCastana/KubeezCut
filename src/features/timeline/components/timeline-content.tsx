@@ -742,7 +742,8 @@ export const TimelineContent = memo(function TimelineContent({
       containerWidth > 0 ? containerWidth : (container?.clientWidth ?? 0);
     if (effectiveWidth <= 0) return;
     const contentDuration = actualDurationRef.current;
-    const newLevel = getZoomToFitLevel(effectiveWidth, contentDuration);
+    // Initial load: cap framing at 30s so fresh projects don't open zoomed all the way out.
+    const newLevel = getZoomToFitLevel(effectiveWidth, contentDuration, { maxDurationSeconds: 30 });
     setZoomImmediate(newLevel);
     if (container) {
       container.scrollLeft = 0;

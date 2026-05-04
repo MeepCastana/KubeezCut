@@ -995,6 +995,7 @@ function getSnapshot(): TimelineState & TimelineActions {
       removeItems: timelineActions.removeItems,
       rippleDeleteItems: timelineActions.rippleDeleteItems,
       closeGapAtPosition: timelineActions.closeGapAtPosition,
+      closeGapOnTrackAtPosition: timelineActions.closeGapOnTrackAtPosition,
       closeAllGapsOnTrack: timelineActions.closeAllGapsOnTrack,
       toggleSnap: timelineActions.toggleSnap,
       setScrollPosition: timelineActions.setScrollPosition,

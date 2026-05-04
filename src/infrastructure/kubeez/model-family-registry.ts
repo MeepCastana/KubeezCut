@@ -135,6 +135,15 @@ export const KUBEEZ_MODEL_FAMILY_REGISTRY: KubeezModelFamilyRegistryEntry[] = [
     matchModelId: (id) => id === 'gpt-1.5-image-medium' || id === 'gpt-1.5-image-high',
   },
   {
+    // GPT Image 2 is a single model_id; the 1K / 2K / 4K choice is a body param
+    // (`resolution`), not a separate model_id. The toggle is purely a UI affordance.
+    baseCardId: 'gpt-image-2',
+    mediaKind: 'image',
+    strategy: 'toggle',
+    displayName: 'GPT Image 2',
+    matchModelId: (id) => id === 'gpt-image-2',
+  },
+  {
     baseCardId: 'suno-music',
     mediaKind: 'music',
     strategy: 'toggle',
@@ -399,6 +408,9 @@ export function defaultModelSettings(
   }
   if (entry.strategy === 'toggle' && entry.baseCardId === 'imagen-4') {
     return { imagenTier: 'standard' };
+  }
+  if (entry.strategy === 'toggle' && entry.baseCardId === 'gpt-image-2') {
+    return { imageResolution: '1k' };
   }
   if (entry.baseCardId === 'kling-2-6') {
     return {

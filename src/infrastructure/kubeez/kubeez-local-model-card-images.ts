@@ -5,6 +5,7 @@
  */
 import flux2 from '@/assets/kubeez-model-cards/flux2.webp';
 import gpt15 from '@/assets/kubeez-model-cards/gpt1.5.webp';
+import gptImage2 from '@/assets/kubeez-model-cards/gpt-image-2.webp';
 import grokimage from '@/assets/kubeez-model-cards/grokimage.webp';
 import grokvideo from '@/assets/kubeez-model-cards/grokvideo.webp';
 import imagen from '@/assets/kubeez-model-cards/imagen.webp';
@@ -79,6 +80,7 @@ function resolveByPrefixHeuristics(id: string): string | undefined {
   if (lower.startsWith('imagen-4') || lower.startsWith('imagen-')) return imagen;
   if (lower.startsWith('z-image')) return zimage;
   if (lower.startsWith('gpt-1.5-image')) return gpt15;
+  if (lower === 'gpt-image-2' || lower.startsWith('gpt-image-2')) return gptImage2;
 
   if (lower.startsWith('grok-text-to-image') || lower.startsWith('grok-image-to-image')) return grokimage;
   if (

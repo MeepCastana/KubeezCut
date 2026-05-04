@@ -31,6 +31,21 @@ vi.mock('@tanstack/react-router', () => ({
   useRouter: () => ({
     invalidate: mocks.invalidate,
   }),
+  Link: ({
+    children,
+    to,
+    onClick,
+    className,
+  }: {
+    children?: ReactNode;
+    to?: string;
+    onClick?: (e: unknown) => void;
+    className?: string;
+  }) => (
+    <a href={typeof to === 'string' ? to : '#'} onClick={onClick} className={className}>
+      {children}
+    </a>
+  ),
 }));
 
 vi.mock('@/shared/logging/logger', () => ({

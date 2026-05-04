@@ -18,7 +18,14 @@ export type KubeezMediaModelKind = 'image' | 'video' | 'music' | 'speech';
  * Models returned by Kubeez `GET /v1/models` that KubeezCut does not surface (e.g. KubeezWebsite-only flows).
  * Dropped during normalization and again in `finalizeModels` so cached snapshots cannot resurrect them.
  */
-const KUBEEZ_CUT_EXCLUDED_CATALOG_MODEL_IDS = new Set<string>(['ad-copy']);
+const KUBEEZ_CUT_EXCLUDED_CATALOG_MODEL_IDS = new Set<string>([
+  'ad-copy',
+  // KubeezWebsite-only Suno tools — no REST endpoint accepts these as `model`,
+  // so surfacing them in the generate-media modal leads users to a dead form.
+  'suno-add-instrumental',
+  'suno-add-vocals',
+  'suno-lyrics-generation',
+]);
 
 function isExcludedFromKubeezCutCatalog(modelId: string): boolean {
   return KUBEEZ_CUT_EXCLUDED_CATALOG_MODEL_IDS.has(modelId);
@@ -110,6 +117,7 @@ export const FALLBACK_TEXT_TO_IMAGE_MODELS: KubeezMediaModelOption[] = withImage
   { model_id: 'imagen-4-fast', display_name: 'Imagen 4 Fast', provider: 'Google' },
   { model_id: 'gpt-1.5-image-medium', display_name: 'GPT 1.5 Image Medium', provider: 'OpenAI' },
   { model_id: 'gpt-1.5-image-high', display_name: 'GPT 1.5 Image High', provider: 'OpenAI' },
+  { model_id: 'gpt-image-2', display_name: 'GPT Image 2', provider: 'OpenAI' },
   { model_id: 'p-image-edit', display_name: 'P Image Edit', provider: 'Pruna AI' },
 ]);
 

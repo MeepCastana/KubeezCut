@@ -128,13 +128,7 @@ function isEditLikeImageModel(m: KubeezMediaModelOption): boolean {
 function modelTaskHint(m: KubeezMediaModelOption): string {
   const k = m.mediaKind;
   if (k === 'speech') return 'Type dialogue and pick voices';
-  if (k === 'music') {
-    const dn = m.display_name.toLowerCase();
-    if (dn.includes('lyrics')) return 'Generate lyrics';
-    if (dn.includes('instrumental')) return 'Add instrumental';
-    if (dn.includes('vocal')) return 'Add or transform vocals';
-    return 'Describe your track';
-  }
+  if (k === 'music') return 'Describe your track';
   if (k === 'video') {
     const t2v = m.supportsTextToVideo === true;
     const i2v = m.supportsImageToVideo === true;
@@ -463,9 +457,7 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
     modelFamilyItem?.baseCardId === 'veo3-1' ||
     modelFamilyItem?.baseCardId === 'wan-2-5';
 
-  const registryDedicatedMusicUi =
-    modelFamilyItem?.baseCardId === 'suno-music' ||
-    modelFamilyItem?.baseCardId === 'suno-tools';
+  const registryDedicatedMusicUi = modelFamilyItem?.baseCardId === 'suno-music';
 
   const showSimpleVariantRow = Boolean(
     modelFamilyItem &&
@@ -557,7 +549,9 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
         <span className={cn(kindBadgeClass(model.mediaKind), 'shrink-0')}>{kindLabelText(model.mediaKind)}</span>
       </div>
 
-      {modelFamilyItem?.baseCardId === 'nano-banana-2' || modelFamilyItem?.baseCardId === 'nano-banana-pro' ? (
+      {modelFamilyItem?.baseCardId === 'nano-banana-2'
+        || modelFamilyItem?.baseCardId === 'nano-banana-pro'
+        || modelFamilyItem?.baseCardId === 'gpt-image-2' ? (
         <div className="space-y-2 border-t border-border/50 pt-3">
           <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Resolution</p>
           <div className="flex flex-wrap gap-1">
@@ -584,6 +578,11 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
               );
             })}
           </div>
+          {modelFamilyItem?.baseCardId === 'gpt-image-2' && imageRes !== '1k' ? (
+            <p className="text-[10px] leading-snug text-muted-foreground">
+              At 2K / 4K, the API requires a non‑square aspect ratio (16:9, 9:16, 4:3, or 3:4).
+            </p>
+          ) : null}
         </div>
       ) : null}
 

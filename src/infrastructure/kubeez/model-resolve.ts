@@ -89,6 +89,11 @@ export function resolveGenerationModelId(params: ResolveGenerationParams): strin
     return variants.some((v) => v.model_id === id) ? id : pickFallbackVariantId(variants, id);
   }
 
+  if (entry.strategy === 'toggle' && entry.baseCardId === 'gpt-image-2') {
+    // model_id is fixed; resolution is sent as a body param at request time.
+    return 'gpt-image-2';
+  }
+
   if (entry.strategy === 'toggle' && entry.baseCardId === 'kling-2-5-i2v') {
     const clip = settings.kling25Clip ?? '5s';
     const id = mapKling25ClipToModelId(clip);

@@ -547,6 +547,77 @@ export function closeGapAtPosition(trackId: string, frame: number): void {
   }, { trackId, frame });
 }
 
+/**
+ * Ripple-close a gap on a single track. Only items on `trackId` downstream of
+ * the gap shift left; `buildLinkedLeftShiftUpdates` then pulls in their linked
+ * counterparts so V/A pairs stay aligned. Solo clips on unrelated tracks stay
+ * in place — unlike `closeGapAtPosition` which shifts everything.
+ */
+export function closeGapOnTrackAtPosition(trackId: string, frame: number): void {
+  const items = useItemsStore.getState().items;
+  const targetFrame = Math.max(0, Math.round(frame));
+  const trackItems = items
+    .filter((item) => item.trackId === trackId)
+    .sort((left, right) => left.from - right.from);
+
+  if (trackItems.length === 0) return;
+
+  let gapStart = 0;
+  let gapEnd = 0;
+
+  for (const item of trackItems) {
+    if (targetFrame >= gapStart && targetFrame < item.from) {
+      gapEnd = item.from;
+      break;
+    }
+    gapStart = item.from + item.durationInFrames;
+  }
+
+  if (gapEnd <= gapStart) return;
+
+  const gapSize = gapEnd - gapStart;
+  const baseShiftByItemId = new Map<string, number>();
+  for (const item of items) {
+    // Only seed shifts on the target track; linked counterparts get pulled
+    // in by buildLinkedLeftShiftUpdates so V/A pairs remain aligned.
+    if (item.trackId === trackId && item.from >= gapEnd) {
+      baseShiftByItemId.set(item.id, gapSize);
+    }
+  }
+
+  const updates = buildLinkedLeftShiftUpdates(items, baseShiftByItemId);
+  if (updates.length === 0) return;
+
+  const shiftedById = new Map(updates.map((u) => [u.id, u.from]));
+  const coveredIds: string[] = [];
+  for (const item of items) {
+    if (shiftedById.has(item.id)) continue;
+    const itemEnd = item.from + item.durationInFrames;
+    for (const other of items) {
+      const newFrom = shiftedById.get(other.id);
+      if (newFrom === undefined || other.trackId !== item.trackId) continue;
+      const newEnd = newFrom + other.durationInFrames;
+      if (newFrom < itemEnd && newEnd > item.from) {
+        coveredIds.push(item.id);
+        break;
+      }
+    }
+  }
+
+  execute('CLOSE_GAP_ON_TRACK', () => {
+    if (coveredIds.length > 0) {
+      useItemsStore.getState()._removeItems(coveredIds);
+      useTransitionsStore.getState()._removeTransitionsForItems(coveredIds);
+      useKeyframesStore.getState()._removeKeyframesForItems(coveredIds);
+    }
+    useItemsStore.getState()._moveItems(updates);
+
+    applyTransitionRepairs(updates.map((update) => update.id));
+
+    useTimelineSettingsStore.getState().markDirty();
+  }, { trackId, frame });
+}
+
 export function closeAllGapsOnTrack(trackId: string): void {
   const items = useItemsStore.getState().items;
   const trackItems = items

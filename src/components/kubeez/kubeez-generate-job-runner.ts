@@ -52,6 +52,8 @@ export type KubeezGenerateJobSnapshot = {
     referenceFiles: File[];
     /** POST /v1/generate/media `quality` when applicable (e.g. P Image Edit turbo). */
     quality?: string;
+    /** POST /v1/generate/media `resolution` when applicable (e.g. GPT Image 2 1K/2K/4K). */
+    resolution?: string;
   };
   timelinePlacement?: { trackId: string };
   playheadFrame: number;
@@ -250,6 +252,7 @@ export async function runKubeezGenerateJobInBackground(
           : undefined,
       preferVideoOutput: iv.isVideo,
       ...(iv.quality !== undefined && iv.quality !== '' ? { quality: iv.quality } : {}),
+      ...(iv.resolution !== undefined && iv.resolution !== '' ? { resolution: iv.resolution } : {}),
       ...(hasSources ? { sourceMediaUrls } : {}),
     });
 

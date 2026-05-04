@@ -6,27 +6,35 @@ import {
   type FrameRange,
 } from '@/shared/utils/frame-invalidation';
 
+// Timeline items / keyframes are treated as immutable refs in this codebase (Zustand pattern:
+// any mutation produces a new ref). Caching the canonical form keyed on the input ref turns
+// what was an O(n) per-tick string build into an O(1) lookup once the form is materialized.
+const canonicalJsonCache = new WeakMap<object, string>();
+
 /** Canonical JSON-like string for structural compare (key order–independent). */
 function canonicalJsonStringify(value: unknown): string {
   if (value === null) {
     return 'null';
   }
   const t = typeof value;
-  if (t === 'string') {
-    return JSON.stringify(value);
-  }
-  if (t === 'number' || t === 'boolean') {
-    return JSON.stringify(value);
-  }
   if (t !== 'object') {
     return JSON.stringify(value);
   }
-  if (Array.isArray(value)) {
-    return `[${value.map((v) => canonicalJsonStringify(v)).join(',')}]`;
+  const obj = value as object;
+  const cached = canonicalJsonCache.get(obj);
+  if (cached !== undefined) {
+    return cached;
   }
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).filter((k) => obj[k] !== undefined).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJsonStringify(obj[k])}`).join(',')}}`;
+  let result: string;
+  if (Array.isArray(value)) {
+    result = `[${value.map((v) => canonicalJsonStringify(v)).join(',')}]`;
+  } else {
+    const o = value as Record<string, unknown>;
+    const keys = Object.keys(o).filter((k) => o[k] !== undefined).sort();
+    result = `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJsonStringify(o[k])}`).join(',')}}`;
+  }
+  canonicalJsonCache.set(obj, result);
+  return result;
 }
 
 export function areKeyframesDataEqual(
@@ -49,6 +57,10 @@ export function areKeyframesDataEqual(
     const other = byId.get(ik.itemId);
     if (!other) {
       return false;
+    }
+    // Shared ref => guaranteed equal; skip the serialize-and-compare entirely.
+    if (ik === other) {
+      continue;
     }
     if (canonicalJsonStringify(ik) !== canonicalJsonStringify(other)) {
       return false;

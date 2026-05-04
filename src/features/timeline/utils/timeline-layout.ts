@@ -15,11 +15,23 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-/** Seconds of timeline to frame in view when using zoom-to-fit (short projects fit without scrolling). */
-const ZOOM_TO_FIT_MAX_SECONDS = 30;
+/** Floor for short/empty projects so fit doesn't crank zoom up to a useless extreme. */
+const ZOOM_TO_FIT_MIN_SECONDS = 10;
 
-export function getZoomToFitLevel(containerWidth: number, contentDurationSeconds: number): number {
-  const duration = Math.min(ZOOM_TO_FIT_MAX_SECONDS, Math.max(10, contentDurationSeconds));
+interface ZoomToFitOptions {
+  /** Cap the framed duration (seconds). Use only for the initial-load fit; omit to fit all content. */
+  maxDurationSeconds?: number;
+}
+
+export function getZoomToFitLevel(
+  containerWidth: number,
+  contentDurationSeconds: number,
+  options: ZoomToFitOptions = {}
+): number {
+  const floored = Math.max(ZOOM_TO_FIT_MIN_SECONDS, contentDurationSeconds);
+  const duration = options.maxDurationSeconds !== undefined
+    ? Math.min(options.maxDurationSeconds, floored)
+    : floored;
   const targetWidth = Math.max(0, containerWidth - TIMELINE_ZOOM_TO_FIT_RIGHT_PADDING_PX);
   return clamp(targetWidth / (duration * 100), ZOOM_MIN, ZOOM_MAX);
 }

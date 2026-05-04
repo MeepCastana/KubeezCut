@@ -7,8 +7,15 @@ describe('timeline layout helpers', () => {
     expect(getZoomToFitLevel(1000, 10)).toBeCloseTo(0.95);
   });
 
-  it('caps zoom-to-fit duration so long timelines match the same framing as a 30s window', () => {
-    expect(getZoomToFitLevel(1000, 120)).toBeCloseTo(getZoomToFitLevel(1000, 30));
+  it('fits all content by default so long timelines do not need a horizontal scrollbar', () => {
+    // 1000px viewport - 50px right padding = 950 / (120s * 100) = 0.0791...
+    expect(getZoomToFitLevel(1000, 120)).toBeCloseTo(950 / (120 * 100));
+  });
+
+  it('honors maxDurationSeconds for the initial-load fit', () => {
+    expect(getZoomToFitLevel(1000, 120, { maxDurationSeconds: 30 })).toBeCloseTo(
+      getZoomToFitLevel(1000, 30)
+    );
   });
 
   it('does not add trailing scroll room when content already fits the viewport', () => {

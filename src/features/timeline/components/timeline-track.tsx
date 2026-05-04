@@ -1,4 +1,4 @@
-import { useState, useRef, memo, useCallback, useMemo } from 'react';
+import { useState, useRef, memo, useCallback, useEffect, useMemo } from 'react';
 import { createLogger } from '@/shared/logging/logger';
 
 const logger = createLogger('TimelineTrack');
@@ -6,6 +6,9 @@ import type { TimelineTrack as TimelineTrackType } from '@/types/timeline';
 import type { MediaMetadata } from '@/types/storage';
 import { TimelineItem } from './timeline-item';
 import { TransitionItem } from './transition-item';
+import { TrackGapGhosts } from './track-gap-ghosts';
+import { useGapHoverStore } from '../stores/gap-hover-store';
+import { getLinkedItems } from '../utils/linked-items';
 import { useTimelineStore } from '../stores/timeline-store';
 import { useTrackDropPreviewStore, type TrackDropGhostPreview } from '../stores/track-drop-preview-store';
 import { useVisibleItems } from '../hooks/use-visible-items';
@@ -179,6 +182,8 @@ export const TimelineTrack = memo(function TimelineTrack({ track }: TimelineTrac
   const [contextMenuFrame, setContextMenuFrame] = useState<number | null>(null);
   const [menuKey, setMenuKey] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
+  const gapHoverRafRef = useRef<number | null>(null);
+  const gapHoverLastClientXRef = useRef(0);
   const externalPreviewItemsRef = useRef<ExternalPreviewEntry[] | null>(null);
   const externalPreviewSignatureRef = useRef<string | null>(null);
   const externalPreviewPromiseRef = useRef<Promise<void> | null>(null);
@@ -205,7 +210,7 @@ export const TimelineTrack = memo(function TimelineTrack({ track }: TimelineTrac
   // Full item count â€” used for context menu guard (must not depend on virtualized subset)
   const hasAnyItems = useItemsStore((s) => (s.itemsByTrackId[track.id]?.length ?? 0) > 0);
   const fps = useTimelineStore((s) => s.fps);
-  const closeGapAtPosition = useTimelineStore((s) => s.closeGapAtPosition);
+  const closeGapOnTrackAtPosition = useTimelineStore((s) => s.closeGapOnTrackAtPosition);
   const allGhostPreviews = useTrackDropPreviewStore((s) => s.ghostPreviews);
   const setTrackGhostPreviews = useTrackDropPreviewStore((s) => s.setGhostPreviews);
   const clearTrackGhostPreviews = useTrackDropPreviewStore((s) => s.clearGhostPreviews);
@@ -479,10 +484,10 @@ export const TimelineTrack = memo(function TimelineTrack({ track }: TimelineTrac
   // Handle closing the gap
   const handleCloseGap = useCallback(() => {
     if (contextMenuFrame !== null) {
-      closeGapAtPosition(track.id, contextMenuFrame);
+      closeGapOnTrackAtPosition(track.id, contextMenuFrame);
       setContextMenuFrame(null);
     }
-  }, [contextMenuFrame, closeGapAtPosition, track.id]);
+  }, [contextMenuFrame, closeGapOnTrackAtPosition, track.id]);
 
   // Force menu remount on right-click to fix positioning
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -490,6 +495,96 @@ export const TimelineTrack = memo(function TimelineTrack({ track }: TimelineTrac
       setMenuKey((k) => k + 1);
     }
   }, []);
+
+  const handleGapHoverMove = useCallback((e: React.MouseEvent) => {
+    gapHoverLastClientXRef.current = e.clientX;
+    if (gapHoverRafRef.current !== null) return;
+    gapHoverRafRef.current = requestAnimationFrame(() => {
+      gapHoverRafRef.current = null;
+      const rect = trackRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const localX = gapHoverLastClientXRef.current - rect.left;
+
+      const trackItems = useItemsStore.getState().itemsByTrackId[track.id];
+      if (!trackItems || trackItems.length < 2) {
+        useGapHoverStore.getState().clearForTrack(track.id);
+        return;
+      }
+      const sorted = [...trackItems].sort((a, b) => a.from - b.from);
+
+      // Find the gap whose extended hit-region (proximity radius) contains the cursor.
+      const HOVER_RADIUS_PX = 90;
+      const MIN_GAP_PX = 14;
+      let bestGap: { gapStart: number; gapEnd: number; distance: number; rightItemId: string } | null = null;
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const cur = sorted[i]!;
+        const next = sorted[i + 1]!;
+        const gapStart = cur.from + cur.durationInFrames;
+        const gapEnd = next.from;
+        if (gapEnd <= gapStart) continue;
+        const left = frameToPixels(gapStart);
+        const right = frameToPixels(gapEnd);
+        if (right - left < MIN_GAP_PX) continue;
+        const distance = localX < left ? left - localX : localX > right ? localX - right : 0;
+        if (distance > HOVER_RADIUS_PX) continue;
+        if (!bestGap || distance < bestGap.distance) {
+          bestGap = { gapStart, gapEnd, distance, rightItemId: next.id };
+        }
+      }
+
+      if (!bestGap) {
+        useGapHoverStore.getState().clearForTrack(track.id);
+        return;
+      }
+
+      // Compute mirror tracks: linked counterparts of the right-bordering clip
+      // whose own gap aligns (no clips overlap [gapStart, gapEnd) on that track).
+      const mirrorTrackIds: string[] = [];
+      const allItems = useItemsStore.getState().items;
+      const linked = getLinkedItems(allItems, bestGap.rightItemId);
+      const itemsByTrackId = useItemsStore.getState().itemsByTrackId;
+      for (const counterpart of linked) {
+        if (counterpart.id === bestGap.rightItemId) continue;
+        if (counterpart.trackId === track.id) continue;
+        if (counterpart.from !== bestGap.gapEnd) continue;
+        const counterpartTrackItems = itemsByTrackId[counterpart.trackId];
+        if (!counterpartTrackItems) continue;
+        // Verify no clip on the counterpart track intersects the gap range.
+        const blocked = counterpartTrackItems.some((item) => {
+          const itemEnd = item.from + item.durationInFrames;
+          return item.from < bestGap!.gapEnd && itemEnd > bestGap!.gapStart;
+        });
+        if (!blocked) {
+          mirrorTrackIds.push(counterpart.trackId);
+        }
+      }
+
+      useGapHoverStore.getState().setActive({
+        trackIds: [track.id, ...mirrorTrackIds],
+        gapStart: bestGap.gapStart,
+        gapEnd: bestGap.gapEnd,
+        hoveredTrackId: track.id,
+      });
+    });
+  }, [track.id, frameToPixels]);
+
+  const handleGapHoverLeave = useCallback(() => {
+    if (gapHoverRafRef.current !== null) {
+      cancelAnimationFrame(gapHoverRafRef.current);
+      gapHoverRafRef.current = null;
+    }
+    useGapHoverStore.getState().clearForTrack(track.id);
+  }, [track.id]);
+
+  useEffect(() => {
+    return () => {
+      if (gapHoverRafRef.current !== null) {
+        cancelAnimationFrame(gapHoverRafRef.current);
+        gapHoverRafRef.current = null;
+      }
+      useGapHoverStore.getState().clearForTrack(track.id);
+    };
+  }, [track.id]);
 
   const handleDragOver = (e: React.DragEvent) => {
     if (isDropDisabled) {
@@ -778,6 +873,8 @@ export const TimelineTrack = memo(function TimelineTrack({ track }: TimelineTrac
           }}
           onMouseDown={handleMouseDown}
           onContextMenu={handleContextMenu}
+          onMouseMove={track.locked ? undefined : handleGapHoverMove}
+          onMouseLeave={track.locked ? undefined : handleGapHoverLeave}
         >
           {isDragOver &&
             !isDropDisabled &&
@@ -816,6 +913,17 @@ export const TimelineTrack = memo(function TimelineTrack({ track }: TimelineTrac
           {track.kind !== 'audio' && trackTransitions.map((transition) => (
             <TransitionItem key={transition.id} transition={transition} trackHidden={!track.visible} />
           ))}
+
+          {/* Proximity-triggered ghost overlays for empty gaps between clips */}
+          {!track.locked
+            && !isDragOver
+            && !isExternalDragOver
+            && !hasItemBeingDragged
+            && ghostPreviews.length === 0
+            && previewBelowGhosts.length === 0
+            && previewAboveGhosts.length === 0 && (
+            <TrackGapGhosts trackId={track.id} trackHeight={track.height} />
+          )}
 
           {/* Locked track overlay indicator */}
           {track.locked && (

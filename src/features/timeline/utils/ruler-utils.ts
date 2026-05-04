@@ -14,9 +14,11 @@ const LABEL_FRAME_INTERVALS = [2, 3, 5, 10, 15] as const;
 /** Frame intervals for ticks — can go down to 1 for max granularity. */
 const TICK_FRAME_INTERVALS = [1, 2, 3, 5, 10, 15] as const;
 
-/** Second intervals when zoomed out past frame-level detail. */
+/** Second intervals when zoomed out past frame-level detail. Extends to 24h to support
+ *  multi-hour timelines being zoomed out far enough to fit the viewport. */
 const SECOND_MULTIPLIERS = [
   1, 2, 3, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600,
+  7200, 10800, 21600, 43200, 86400,
 ] as const;
 
 /** Minimum pixel spacing between labels to keep them readable. */
@@ -188,7 +190,9 @@ function findOptimalInterval({
     }
   }
 
-  return 60;
+  // At extreme zoom-out, no preset multiplier hits the spacing target — return the largest
+  // multiplier so labels stay sparse (few overlapping ticks) instead of falling back to 60s.
+  return SECOND_MULTIPLIERS[SECOND_MULTIPLIERS.length - 1] ?? 3600;
 }
 
 export function shouldShowLabel({

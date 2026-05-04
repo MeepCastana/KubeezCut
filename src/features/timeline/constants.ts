@@ -60,7 +60,9 @@ export const FILMSTRIP_EXTRACT_WIDTH = Math.round(FILMSTRIP_EXTRACT_HEIGHT * (16
 // TIMELINE LAYOUT
 // =============================================================================
 
-const MIN_ZOOM_LEVEL = 0.01;
+// 0.0001 = 0.01 px/sec — lets multi-hour clips zoom out far enough that the entire
+// content fits inside the viewport (no horizontal scrollbar). Covers ~27hr on a 1080px viewport.
+const MIN_ZOOM_LEVEL = 0.0001;
 const MAX_ZOOM_LEVEL = 50; // Matches zoom-store internal limit; enables frame-level zoom for tiny clips
 
 export const BASE_SNAP_THRESHOLD_PIXELS = 8; // Base threshold at 1x zoom

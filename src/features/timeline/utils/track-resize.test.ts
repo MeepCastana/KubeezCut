@@ -140,7 +140,7 @@ describe('track-resize', () => {
     expect(layout.audioPaneHeight).toBe(0);
   });
 
-  it('defaults the split flush under video tracks (no reserved strip; extra slack goes below audio)', () => {
+  it('defaults the split under video tracks plus the top drop strip; extra slack goes below audio', () => {
     const viewportHeight = 420;
     const trackTitleBarHeight = 24;
     const tracks = [
@@ -155,9 +155,10 @@ describe('track-resize', () => {
       trackTitleBarHeight,
     });
 
-    // availablePaneHeight = 419 (viewport - 1px section divider); video pane = video track stack only
-    expect(layout.videoPaneHeight).toBe(120);
-    expect(layout.audioPaneHeight).toBe(299);
+    // availablePaneHeight = 419 (viewport - 1px section divider);
+    // video pane = video track stack (120) + MIN_TOP_VIDEO_NEW_TRACK_DROP_ZONE_PX (28) = 148
+    expect(layout.videoPaneHeight).toBe(148);
+    expect(layout.audioPaneHeight).toBe(271);
   });
 
   it('keeps a manual divider position stable when track heights change', () => {

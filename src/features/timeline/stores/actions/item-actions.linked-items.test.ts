@@ -10,6 +10,7 @@ import { useSelectionStore } from '@/shared/state/selection';
 import {
   closeAllGapsOnTrack,
   closeGapAtPosition,
+  closeGapOnTrackAtPosition,
   linkItems,
   removeItems,
   rippleDeleteItems,
@@ -513,5 +514,107 @@ describe('linked timeline items', () => {
     expect(video?.linkedGroupId).toBe(audio?.linkedGroupId);
     expect(video?.linkedGroupId).toBe(otherVideo?.linkedGroupId);
     expect(useSelectionStore.getState().selectedItemIds).toEqual(['video-1', 'audio-1', 'video-2']);
+  });
+
+  it('closeGapOnTrackAtPosition leaves solo clips on unrelated tracks alone', () => {
+    useItemsStore.getState().setItems([
+      makeVideoItem({
+        id: 'video-anchor',
+        durationInFrames: 60,
+        linkedGroupId: undefined,
+        originId: 'origin-anchor',
+        mediaId: 'media-anchor',
+      }),
+      makeVideoItem({
+        id: 'video-2',
+        from: 120,
+        durationInFrames: 30,
+        linkedGroupId: undefined,
+        originId: 'origin-2',
+        mediaId: 'media-2',
+      }),
+      makeAudioItem({
+        id: 'solo-audio',
+        from: 150,
+        durationInFrames: 30,
+        linkedGroupId: undefined,
+        originId: 'origin-solo',
+        mediaId: 'media-solo',
+      }),
+    ]);
+
+    closeGapOnTrackAtPosition('video-track', 90);
+
+    const items = useItemsStore.getState().items;
+    expect(items.find((item) => item.id === 'video-2')?.from).toBe(60);
+    expect(items.find((item) => item.id === 'solo-audio')?.from).toBe(150);
+  });
+
+  it('closeGapOnTrackAtPosition shifts linked counterparts on other tracks', () => {
+    useItemsStore.getState().setItems([
+      makeVideoItem({
+        id: 'video-anchor',
+        durationInFrames: 60,
+        linkedGroupId: undefined,
+        originId: 'origin-anchor',
+        mediaId: 'media-anchor',
+      }),
+      makeAudioItem({
+        id: 'audio-anchor',
+        durationInFrames: 60,
+        linkedGroupId: undefined,
+        originId: 'origin-anchor',
+        mediaId: 'media-anchor',
+      }),
+      makeVideoItem({
+        id: 'video-2',
+        from: 120,
+        durationInFrames: 30,
+        linkedGroupId: 'group-2',
+        originId: 'origin-2',
+        mediaId: 'media-2',
+      }),
+      makeAudioItem({
+        id: 'audio-2',
+        from: 120,
+        durationInFrames: 30,
+        linkedGroupId: 'group-2',
+        originId: 'origin-2',
+        mediaId: 'media-2',
+      }),
+    ]);
+
+    closeGapOnTrackAtPosition('video-track', 90);
+
+    const items = useItemsStore.getState().items;
+    expect(items.find((item) => item.id === 'video-2')?.from).toBe(60);
+    expect(items.find((item) => item.id === 'audio-2')?.from).toBe(60);
+  });
+
+  it('closeGapOnTrackAtPosition is undoable', () => {
+    useItemsStore.getState().setItems([
+      makeVideoItem({
+        id: 'video-anchor',
+        durationInFrames: 60,
+        linkedGroupId: undefined,
+        originId: 'origin-anchor',
+        mediaId: 'media-anchor',
+      }),
+      makeVideoItem({
+        id: 'video-2',
+        from: 120,
+        durationInFrames: 30,
+        linkedGroupId: undefined,
+        originId: 'origin-2',
+        mediaId: 'media-2',
+      }),
+    ]);
+
+    closeGapOnTrackAtPosition('video-track', 90);
+    expect(useItemsStore.getState().items.find((i) => i.id === 'video-2')?.from).toBe(60);
+    expect(useTimelineCommandStore.getState().canUndo).toBe(true);
+
+    useTimelineCommandStore.getState().undo();
+    expect(useItemsStore.getState().items.find((i) => i.id === 'video-2')?.from).toBe(120);
   });
 });

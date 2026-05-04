@@ -167,7 +167,15 @@ function tryRepairTransition(
   }
 
   if (isAdjacent) {
-    const maxDuration = getMaxTransitionDurationForHandles(leftClip, rightClip, transition.alignment);
+    // Use strict (hidden-handle-only) so a slip/trim that eats into the source
+    // handle clamps the transition down to what real source remains, rather than
+    // letting the body fallback hide the regression.
+    const maxDuration = getMaxTransitionDurationForHandles(
+      leftClip,
+      rightClip,
+      transition.alignment,
+      { handleConstraint: 'strict' },
+    );
     if (maxDuration <= 0) {
       return {
         status: 'broken',

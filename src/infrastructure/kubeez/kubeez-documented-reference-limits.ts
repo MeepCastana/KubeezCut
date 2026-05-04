@@ -51,6 +51,7 @@ const LEGACY_REST_EXACT: Record<string, number> = {
   'flux-2-edit-2K': 8,
   'gpt-1.5-image-high': 16,
   'gpt-1.5-image-medium': 16,
+  'gpt-image-2': 16,
   'grok-text-to-image': 1,
   'imagen-4': 0,
   'imagen-4-fast': 0,

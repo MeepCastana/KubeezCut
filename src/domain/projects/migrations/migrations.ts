@@ -95,12 +95,10 @@ function getAvailableHandle(item: ProjectItem, side: 'start' | 'end'): number {
 }
 
 function getEffectiveTransitionHandle(item: ProjectItem, side: 'start' | 'end'): number {
-  const hidden = getAvailableHandle(item, side);
-  if (item.type !== 'video') {
-    return hidden;
-  }
-  const body = Math.max(0, item.durationInFrames - 1);
-  return Math.max(hidden, body);
+  // Migration uses strict (hidden source only). Transitions normalized from the
+  // legacy overlap model must be backed by real source handle — the runtime
+  // body-fallback is reserved for new transitions added at full-clip razor cuts.
+  return getAvailableHandle(item, side);
 }
 
 function getTransitionPortions(durationInFrames: number, alignment: number | undefined): {
