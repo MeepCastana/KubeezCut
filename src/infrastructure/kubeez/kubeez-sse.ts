@@ -76,7 +76,7 @@ export async function readKubeezSseUntilResult(params: {
     method: 'GET',
     headers: {
       Accept: 'text/event-stream',
-      'X-API-Key': apiKey,
+      Authorization: `Bearer ${apiKey}`,
       'Cache-Control': 'no-store',
     },
     signal,

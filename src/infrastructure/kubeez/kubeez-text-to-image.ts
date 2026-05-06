@@ -307,7 +307,7 @@ async function finalizeMediaGenerationFromStatus(
         logger.debug('Kubeez — waiting for cdn_ready after completion');
       }
       await sleep(MEDIA_DOWNLOAD_RETRY_MS, signal);
-      const r = await fetch(statusUrl, { headers: { 'X-API-Key': apiKey }, signal });
+      const r = await fetch(statusUrl, { headers: { Authorization: `Bearer ${apiKey}` }, signal });
       if (r.ok) {
         body = await parseJsonResponse(r);
       }
@@ -319,7 +319,7 @@ async function finalizeMediaGenerationFromStatus(
       firstOutputMediaUrl(body, prefer) ?? firstOutputMediaUrl(body, prefer === 'video' ? 'image' : 'video');
     if (!mediaUrl) {
       await sleep(MEDIA_DOWNLOAD_RETRY_MS, signal);
-      const r = await fetch(statusUrl, { headers: { 'X-API-Key': apiKey }, signal });
+      const r = await fetch(statusUrl, { headers: { Authorization: `Bearer ${apiKey}` }, signal });
       if (r.ok) {
         body = await parseJsonResponse(r);
       }
@@ -345,7 +345,7 @@ async function finalizeMediaGenerationFromStatus(
     }
     if (mediaRes.status === 404 && d < MEDIA_DOWNLOAD_RETRIES - 1) {
       await sleep(MEDIA_DOWNLOAD_RETRY_MS, signal);
-      const r = await fetch(statusUrl, { headers: { 'X-API-Key': apiKey }, signal });
+      const r = await fetch(statusUrl, { headers: { Authorization: `Bearer ${apiKey}` }, signal });
       if (r.ok) {
         body = await parseJsonResponse(r);
       }
@@ -412,7 +412,7 @@ export async function generateKubeezMediaBlob(params: GenerateTextToImageParams)
   const root = resolveKubeezApiBaseUrl(baseUrl);
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-API-Key': apiKey,
+    Authorization: `Bearer ${apiKey}`,
   };
 
   const urls = sourceMediaUrls?.filter((u) => typeof u === 'string' && u.trim().length > 0) ?? [];
@@ -489,7 +489,7 @@ export async function generateKubeezMediaBlob(params: GenerateTextToImageParams)
     }
 
     const statusRes = await fetch(`${root}/v1/generate/media/${encodeURIComponent(generationId)}`, {
-      headers: { 'X-API-Key': apiKey },
+      headers: { Authorization: `Bearer ${apiKey}` },
       signal,
     });
     const statusBody = await parseJsonResponse(statusRes);

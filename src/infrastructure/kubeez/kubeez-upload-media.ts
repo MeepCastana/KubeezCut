@@ -79,7 +79,7 @@ export async function uploadKubeezMediaFile(params: UploadKubeezMediaFileParams)
 
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'X-API-Key': apiKey },
+    headers: { Authorization: `Bearer ${apiKey}` },
     body: form,
     signal,
   });

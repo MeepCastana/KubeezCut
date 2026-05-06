@@ -344,7 +344,7 @@ async function fetchMusicJobStatusOr404Pair(params: {
   const { root, apiKey, generationId, signal } = params;
   const musicUrl = `${root}/v1/generate/music/${encodeURIComponent(generationId)}`;
   const mediaUrl = `${root}/v1/generate/media/${encodeURIComponent(generationId)}`;
-  const headers = { 'X-API-Key': apiKey };
+  const headers = { Authorization: `Bearer ${apiKey}` };
 
   const musicRes = await fetch(musicUrl, { headers, signal });
   const musicBody = await parseJsonResponse(musicRes);
@@ -456,7 +456,7 @@ async function pollKubeezMusicJob(params: {
     if (terminalOk) {
       // Terminal: try the other endpoint first (with final audio_url requirement)
       const otherUrl = via === 'music' ? mediaUrl : musicUrl;
-      const otherRes = await fetch(otherUrl, { headers: { 'X-API-Key': apiKey }, signal });
+      const otherRes = await fetch(otherUrl, { headers: { Authorization: `Bearer ${apiKey}` }, signal });
       if (otherRes.ok) {
         const otherBody = await parseJsonResponse(otherRes);
         const resolvedOther = await tryResolveMusicCompletionPayload(otherBody, signal);
@@ -517,7 +517,7 @@ async function pollKubeezDialogueJob(params: {
     }
 
     const statusRes = await fetch(pollUrl, {
-      headers: { 'X-API-Key': apiKey },
+      headers: { Authorization: `Bearer ${apiKey}` },
       signal,
     });
     const statusBody = await parseJsonResponse(statusRes);
@@ -594,7 +594,7 @@ export async function generateKubeezMusicFiles(
   const root = resolveKubeezApiBaseUrl(baseUrl);
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-API-Key': apiKey,
+    Authorization: `Bearer ${apiKey}`,
   };
 
   const startRes = await fetch(`${root}/v1/generate/music`, {
@@ -680,7 +680,7 @@ export async function generateKubeezDialogueBlob(params: GenerateKubeezDialogueP
   const root = resolveKubeezApiBaseUrl(baseUrl);
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-API-Key': apiKey,
+    Authorization: `Bearer ${apiKey}`,
   };
 
   const payload = {

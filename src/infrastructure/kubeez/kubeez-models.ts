@@ -456,7 +456,7 @@ async function fetchModelsForType(params: {
   const url = `${root}/v1/models?model_type=${encodeURIComponent(params.modelType)}`;
 
   const res = await fetch(url, {
-    headers: { 'X-API-Key': params.apiKey },
+    headers: { Authorization: `Bearer ${params.apiKey}` },
     signal: params.signal,
   });
 

@@ -93,7 +93,7 @@ export async function fetchKubeezCredits(params: {
 
   try {
     const res = await fetch(url, {
-      headers: { 'X-API-Key': params.apiKey },
+      headers: { Authorization: `Bearer ${params.apiKey}` },
       signal: params.signal,
     });
 

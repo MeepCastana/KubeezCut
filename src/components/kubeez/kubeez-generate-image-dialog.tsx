@@ -26,6 +26,7 @@ import {
   type ModelTab,
 } from '@/components/kubeez/kubeez-generate-dialog-fragments';
 import { useSettingsStore } from '@/features/settings/stores/settings-store';
+import { useEffectiveKubeezToken } from '@/shared/state/kubeez-account';
 import { useProjectStore } from '@/features/projects/stores/project-store';
 import { usePlaybackStore } from '@/shared/state/playback';
 import { useTimelineStore } from '@/features/timeline/stores/timeline-store';
@@ -164,7 +165,10 @@ export function KubeezGenerateImageDialog({
   timelinePlacement,
 }: KubeezGenerateImageDialogProps) {
   const navigate = useNavigate();
-  const kubeezApiKey = useSettingsStore((s) => s.kubeezApiKey);
+  // Effective auth token: live Supabase session JWT (preferred) → stored
+  // pasted API key (fallback for OSS / standalone). Existing call sites
+  // keep the `apiKey` parameter name; it's a Bearer-style token now.
+  const { token: kubeezApiKey, hasAuth: hasKubeezAuth } = useEffectiveKubeezToken();
   const kubeezApiBaseUrl = useSettingsStore((s) => s.kubeezApiBaseUrl);
   const currentProject = useProjectStore((s) => s.currentProject);
   const markReopenGenerateAfterSettings = () => {
@@ -174,9 +178,9 @@ export function KubeezGenerateImageDialog({
   const fps = useTimelineStore((s) => s.fps);
 
   const { credits: userCredits, refresh: refreshCredits, deduct: deductCredits } = useKubeezCredits({
-    apiKey: kubeezApiKey ?? '',
+    apiKey: kubeezApiKey,
     baseUrl: kubeezApiBaseUrl ?? undefined,
-    enabled: open && !!kubeezApiKey,
+    enabled: open && hasKubeezAuth,
   });
 
   const promptRef = useRef('');
@@ -1287,7 +1291,7 @@ export function KubeezGenerateImageDialog({
     [addMotionRefVideo, libraryMediaToReferenceFile]
   );
 
-  const missingKey = !kubeezApiKey?.trim();
+  const missingKey = !hasKubeezAuth;
   const libraryOnly = !timelinePlacement;
 
   const referenceLabel =
