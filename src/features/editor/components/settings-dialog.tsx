@@ -44,6 +44,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { KUBEEZ_BRAND_LOGO_URL } from '@/components/brand/kubeez-cut-logo';
+import { KubeezAccountSettings } from '@/components/kubeez/kubeez-account-settings';
 import {
   LocalInferenceUnloadControl,
   useSettingsStore,
@@ -229,7 +230,6 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const defaultWhisperModel = useSettingsStore((s) => s.defaultWhisperModel);
   const defaultWhisperQuantization = useSettingsStore((s) => s.defaultWhisperQuantization);
   const defaultWhisperLanguage = useSettingsStore((s) => s.defaultWhisperLanguage);
-  const kubeezApiKey = useSettingsStore((s) => s.kubeezApiKey);
   const setSetting = useSettingsStore((s) => s.setSetting);
   const resetToDefaults = useSettingsStore((s) => s.resetToDefaults);
 
@@ -397,32 +397,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               )}
 
               {activeSection === 'kubeez' && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={KUBEEZ_BRAND_LOGO_URL}
-                      alt="Kubeez"
-                      className="h-9 w-auto max-w-[min(100%,200px)] object-contain object-left"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm" htmlFor="editor-settings-kubeez-api-key">
-                      API key
-                    </Label>
-                    <Input
-                      id="editor-settings-kubeez-api-key"
-                      type="password"
-                      autoComplete="off"
-                      placeholder="Paste your Kubeez API key"
-                      value={kubeezApiKey}
-                      onChange={(e) => setSetting('kubeezApiKey', e.target.value)}
-                      className="font-mono"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Required for Kubeez media generation in the editor. Stored in this browser&apos;s local storage only.
-                    </p>
-                  </div>
-                </div>
+                <KubeezAccountSettings inputIdPrefix="editor-settings-kubeez-api-key" />
               )}
 
               {activeSection === 'timeline' && (

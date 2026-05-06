@@ -9,7 +9,6 @@ import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -20,7 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { KubeezCutLogo, KUBEEZ_BRAND_LOGO_URL } from '@/components/brand/kubeez-cut-logo';
+import { KubeezCutLogo } from '@/components/brand/kubeez-cut-logo';
+import { KubeezAccountSettings } from '@/components/kubeez/kubeez-account-settings';
 import { LocalInferenceUnloadControl } from '@/features/settings/components/local-inference-unload-control';
 import { useSettingsStore } from '@/features/settings/stores/settings-store';
 import { HOTKEYS, HOTKEY_DESCRIPTIONS, type HotkeyKey } from '@/config/hotkeys';
@@ -72,7 +72,6 @@ function Settings() {
   const defaultWhisperModel = useSettingsStore((s) => s.defaultWhisperModel);
   const defaultWhisperQuantization = useSettingsStore((s) => s.defaultWhisperQuantization);
   const defaultWhisperLanguage = useSettingsStore((s) => s.defaultWhisperLanguage);
-  const kubeezApiKey = useSettingsStore((s) => s.kubeezApiKey);
   const setSetting = useSettingsStore((s) => s.setSetting);
   const resetToDefaults = useSettingsStore((s) => s.resetToDefaults);
   const defaultWhisperLanguageValue = getWhisperLanguageSelectValue(defaultWhisperLanguage);
@@ -345,31 +344,9 @@ function Settings() {
               'border-primary/35 bg-primary/[0.06] shadow-[0_0_0_1px_hsl(var(--primary)/0.25)]',
           )}
         >
-          <div className="flex items-center gap-3 border-b border-border pb-2">
-            <img
-              src={KUBEEZ_BRAND_LOGO_URL}
-              alt="Kubeez"
-              className="h-9 w-auto max-w-[min(100%,200px)] object-contain object-left"
-            />
-          </div>
-
+          <div className="border-b border-border pb-2" />
           <div className="grid gap-4 max-w-xl">
-            <div className="space-y-2">
-              <Label htmlFor="kubeez-api-key">API key</Label>
-              <p className="text-sm text-muted-foreground">
-                Used for Kubeez media generation (image, video, music, speech) from the editor. Stored only in this
-                browser&apos;s local storage.
-              </p>
-              <Input
-                id="kubeez-api-key"
-                type="password"
-                autoComplete="off"
-                placeholder="Paste your Kubeez API key"
-                value={kubeezApiKey}
-                onChange={(e) => setSetting('kubeezApiKey', e.target.value)}
-                className="font-mono"
-              />
-            </div>
+            <KubeezAccountSettings inputIdPrefix="kubeez-api-key" />
           </div>
         </section>
 
