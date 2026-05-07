@@ -34,6 +34,17 @@ export default tseslint.config(
       ],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       '@typescript-eslint/no-explicit-any': 'warn',
+      // Allow `_`-prefixed parameters / variables / caught errors for intentional
+      // ignores (e.g. mock fn signatures matched against a real API in tests).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
     },
   },
   {
