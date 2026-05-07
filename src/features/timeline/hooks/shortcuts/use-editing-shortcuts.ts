@@ -290,8 +290,10 @@ export function useEditingShortcuts(callbacks: TimelineShortcutCallbacks) {
     hotkeys.SPLIT_AT_PLAYHEAD,
     (event) => {
       event.preventDefault();
-      const { previewFrame, currentFrame } = usePlaybackStore.getState();
-      const splitFrame = previewFrame ?? currentFrame;
+      // Prefer the cursor (ghost-playhead) position when the user is hovering
+      // anywhere on the timeline; otherwise fall back to the permanent playhead.
+      const { hoverFrame, currentFrame } = usePlaybackStore.getState();
+      const splitFrame = hoverFrame ?? currentFrame;
 
       const overlappingItemIds = items.filter((item) => {
         const itemStart = item.from;

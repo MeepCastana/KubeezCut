@@ -506,32 +506,47 @@ export const TimelineTrack = memo(function TimelineTrack({ track }: TimelineTrac
       const localX = gapHoverLastClientXRef.current - rect.left;
 
       const trackItems = useItemsStore.getState().itemsByTrackId[track.id];
-      if (!trackItems || trackItems.length < 2) {
+      if (!trackItems || trackItems.length === 0) {
         useGapHoverStore.getState().clearForTrack(track.id);
         return;
       }
       const sorted = [...trackItems].sort((a, b) => a.from - b.from);
 
       // Find the gap whose extended hit-region (proximity radius) contains the cursor.
+      // Considers the leading gap [0, first-clip-from] in addition to the gaps
+      // between adjacent clip pairs — context-menu ripple-delete already supports
+      // leading gaps, so the ghost-delete UI should match.
       const HOVER_RADIUS_PX = 90;
       const MIN_GAP_PX = 14;
-      let bestGap: { gapStart: number; gapEnd: number; distance: number; rightItemId: string } | null = null;
+      type BestGap = { gapStart: number; gapEnd: number; distance: number; rightItemId: string };
+      const bestGapRef: { current: BestGap | null } = { current: null };
+
+      const considerGap = (gapStart: number, gapEnd: number, rightItemId: string) => {
+        if (gapEnd <= gapStart) return;
+        const left = frameToPixels(gapStart);
+        const right = frameToPixels(gapEnd);
+        if (right - left < MIN_GAP_PX) return;
+        const distance = localX < left ? left - localX : localX > right ? localX - right : 0;
+        if (distance > HOVER_RADIUS_PX) return;
+        if (!bestGapRef.current || distance < bestGapRef.current.distance) {
+          bestGapRef.current = { gapStart, gapEnd, distance, rightItemId };
+        }
+      };
+
+      // Leading gap: timeline start (frame 0) to the first clip on this track.
+      const first = sorted[0]!;
+      if (first.from > 0) {
+        considerGap(0, first.from, first.id);
+      }
+
+      // Gaps between adjacent clip pairs.
       for (let i = 0; i < sorted.length - 1; i++) {
         const cur = sorted[i]!;
         const next = sorted[i + 1]!;
-        const gapStart = cur.from + cur.durationInFrames;
-        const gapEnd = next.from;
-        if (gapEnd <= gapStart) continue;
-        const left = frameToPixels(gapStart);
-        const right = frameToPixels(gapEnd);
-        if (right - left < MIN_GAP_PX) continue;
-        const distance = localX < left ? left - localX : localX > right ? localX - right : 0;
-        if (distance > HOVER_RADIUS_PX) continue;
-        if (!bestGap || distance < bestGap.distance) {
-          bestGap = { gapStart, gapEnd, distance, rightItemId: next.id };
-        }
+        considerGap(cur.from + cur.durationInFrames, next.from, next.id);
       }
 
+      const bestGap = bestGapRef.current;
       if (!bestGap) {
         useGapHoverStore.getState().clearForTrack(track.id);
         return;
@@ -552,7 +567,7 @@ export const TimelineTrack = memo(function TimelineTrack({ track }: TimelineTrac
         // Verify no clip on the counterpart track intersects the gap range.
         const blocked = counterpartTrackItems.some((item) => {
           const itemEnd = item.from + item.durationInFrames;
-          return item.from < bestGap!.gapEnd && itemEnd > bestGap!.gapStart;
+          return item.from < bestGap.gapEnd && itemEnd > bestGap.gapStart;
         });
         if (!blocked) {
           mirrorTrackIds.push(counterpart.trackId);

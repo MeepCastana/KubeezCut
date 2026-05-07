@@ -3,6 +3,7 @@ import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { GlobalTooltip } from '@/components/ui/global-tooltip';
 import { Toaster } from '@/components/ui/sonner';
+import { InsufficientCreditsModal } from '@/components/kubeez/insufficient-credits-modal';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { routeTree } from './routeTree.gen';
 
@@ -58,6 +59,7 @@ export function App() {
         <RouterProvider router={router} />
         <GlobalTooltip />
         <Toaster />
+        <InsufficientCreditsModal />
       </TooltipProvider>
     </ErrorBoundary>
   );

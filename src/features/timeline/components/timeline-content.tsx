@@ -183,10 +183,17 @@ export const TimelineContent = memo(function TimelineContent({
   const scrubTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const verticalScrollTargetRef = useRef<HTMLDivElement | null>(null);
 
-  // Preview frame hover state
+  // Preview frame hover state.
+  // `previewFrame` drives the preview canvas — only set when the cursor is over
+  // a video / image clip rectangle. `hoverFrame` drives the ghost playhead —
+  // tracks the cursor anywhere on the timeline. The two are intentionally
+  // decoupled so a hovering mouse outside any clip doesn't disturb the preview.
   const setPreviewFrame = usePlaybackStore((s) => s.setPreviewFrame);
   const setPreviewFrameRef = useRef(setPreviewFrame);
   setPreviewFrameRef.current = setPreviewFrame;
+  const setHoverFrame = usePlaybackStore((s) => s.setHoverFrame);
+  const setHoverFrameRef = useRef(setHoverFrame);
+  setHoverFrameRef.current = setHoverFrame;
   const previewRafRef = useRef<number | null>(null);
 
   const pixelsToFrameRef = useRef(pixelsToFrame);
@@ -194,18 +201,21 @@ export const TimelineContent = memo(function TimelineContent({
   const maxTimelineFrameRef = useRef(maxTimelineFrame);
   maxTimelineFrameRef.current = maxTimelineFrame;
 
-  // Clear previewFrame when playback starts
+  // Clear preview + hover when playback starts
   useEffect(() => {
     return usePlaybackStore.subscribe((state, prev) => {
       if (state.isPlaying && !prev.isPlaying) {
         state.setPreviewFrame(null);
+        state.setHoverFrame(null);
       }
     });
   }, []);
 
   useEffect(() => {
-    if (isDragging && usePlaybackStore.getState().previewFrame !== null) {
-      usePlaybackStore.getState().setPreviewFrame(null);
+    if (isDragging) {
+      const playback = usePlaybackStore.getState();
+      if (playback.previewFrame !== null) playback.setPreviewFrame(null);
+      if (playback.hoverFrame !== null) playback.setHoverFrame(null);
     }
   }, [isDragging]);
 
@@ -556,8 +566,12 @@ export const TimelineContent = memo(function TimelineContent({
   // Preview scrubber: show ghost playhead on hover
   const handleTimelineMouseDownCapture = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
-    if (usePlaybackStore.getState().previewFrame !== null) {
+    const playback = usePlaybackStore.getState();
+    if (playback.previewFrame !== null) {
       setPreviewFrameRef.current(null);
+    }
+    if (playback.hoverFrame !== null) {
+      setHoverFrameRef.current(null);
     }
 
     // Click-to-seek: mousedown on empty track area moves the playhead there.
@@ -571,11 +585,12 @@ export const TimelineContent = memo(function TimelineContent({
     const inTracks = !!target.closest('.timeline-tracks');
     if (!inTracks) return;
 
-    // Skip anything interactive/structural: items, resize handles, push handles,
-    // playhead, gizmos, buttons, inputs. These are the same guards marquee uses.
+    // Skip interactive sub-controls inside the tracks area: resize handles,
+    // push handles, the playhead drag handle, gizmos, buttons, inputs.
+    // (Clips themselves — `[data-item-id]` — are NOT skipped; we want clicking
+    // on a clip to also seek to the click position alongside selection.)
     if (
-      target.closest('[data-item-id]')
-      || target.closest('[data-resize-handle]')
+      target.closest('[data-resize-handle]')
       || target.closest('[data-track-push]')
       || target.closest('[data-playhead-handle]')
       || target.closest('[data-gizmo]')
@@ -585,6 +600,14 @@ export const TimelineContent = memo(function TimelineContent({
       || target.closest('[role="button"]')
     ) {
       return;
+    }
+
+    // Razor / rate-stretch / trim-edit tools have their own click semantics on
+    // clips (split, change rate, trim). Let those tools own the click without
+    // a side-effect seek. The default select tool gets the seek behavior.
+    if (target.closest('[data-item-id]')) {
+      const activeTool = useSelectionStore.getState().activeTool;
+      if (activeTool !== 'select') return;
     }
 
     const scrollContainer = containerRef.current;
@@ -597,9 +620,17 @@ export const TimelineContent = memo(function TimelineContent({
       Math.min(Math.round(pixelsToFrameRef.current(x)), maxTimelineFrameRef.current)
     );
 
-    const playback = usePlaybackStore.getState();
-    if (playback.isPlaying) playback.pause();
-    playback.setScrubFrame(frame);
+    const playbackNow = usePlaybackStore.getState();
+    if (playbackNow.isPlaying) {
+      // Click-while-playing seeks through play — don't pause. setCurrentFrame
+      // moves the playhead, propagates to the Clock (which emits a 'seek'
+      // event), and audio/video re-sync to the new position while playback
+      // continues. setScrubFrame would also set previewFrame, which only
+      // makes sense for paused-scrub gestures.
+      playbackNow.setCurrentFrame(frame);
+    } else {
+      playbackNow.setScrubFrame(frame);
+    }
 
     // Prevent the deselect-on-click handler from immediately clearing any
     // selection the seek made sense for; also matches ruler scrub behavior.
@@ -612,11 +643,15 @@ export const TimelineContent = memo(function TimelineContent({
   }, []);
 
   const handleTimelineMouseMove = useCallback((e: React.MouseEvent) => {
+    const clearPreviewAndHover = () => {
+      const playback = usePlaybackStore.getState();
+      if (playback.previewFrame !== null) setPreviewFrameRef.current(null);
+      if (playback.hoverFrame !== null) setHoverFrameRef.current(null);
+    };
+
     // Skip during playback
     if (usePlaybackStore.getState().isPlaying) {
-      if (usePlaybackStore.getState().previewFrame !== null) {
-        setPreviewFrameRef.current(null);
-      }
+      clearPreviewAndHover();
       return;
     }
 
@@ -631,9 +666,7 @@ export const TimelineContent = memo(function TimelineContent({
         cancelAnimationFrame(previewRafRef.current);
         previewRafRef.current = null;
       }
-      if (usePlaybackStore.getState().previewFrame !== null) {
-        setPreviewFrameRef.current(null);
-      }
+      clearPreviewAndHover();
       return;
     }
 
@@ -641,9 +674,7 @@ export const TimelineContent = memo(function TimelineContent({
     const gestureCursorActive = ACTIVE_TIMELINE_GESTURE_CURSOR_CLASSES.some((className) => body.classList.contains(className));
     const interactionLockActive = gestureCursorActive || body.style.userSelect === 'none';
     if (interactionLockActive) {
-      if (usePlaybackStore.getState().previewFrame !== null) {
-        setPreviewFrameRef.current(null);
-      }
+      clearPreviewAndHover();
       return;
     }
 
@@ -656,18 +687,22 @@ export const TimelineContent = memo(function TimelineContent({
     const rect = scrollContainer.getBoundingClientRect();
     const x = e.clientX - rect.left + scrollContainer.scrollLeft;
 
-    // In razor mode with Shift held, snap to nearby targets
+    // In razor mode, mirror the click-time snap logic so the ghost cursor lands
+    // exactly where the cut will land. Default behavior snaps to the playhead
+    // when within RAZOR_PLAYHEAD_SNAP_THRESHOLD_PX; Shift expands snapping to
+    // item edges, grid, markers, and the playhead via buildRazorSnapTargets().
+    // (We're already past the isPlaying early-return above, so isPlaying = false.)
     const isRazor = useSelectionStore.getState().activeTool === 'razor';
     let frame: number;
-    if (isRazor && e.shiftKey) {
-      const snapTargets = buildRazorSnapTargets();
+    if (isRazor) {
+      const snapTargets = e.shiftKey ? buildRazorSnapTargets() : undefined;
       const { splitFrame } = getRazorSplitPosition({
         cursorX: x,
         currentFrame: currentFrameRef.current,
         isPlaying: false,
         frameToPixels: frameToPixelsRef.current,
         pixelsToFrame: pixelsToFrameRef.current,
-        shiftHeld: true,
+        shiftHeld: e.shiftKey,
         snapTargets,
       });
       frame = Math.max(0, Math.min(splitFrame, maxTimelineFrameRef.current));
@@ -678,10 +713,14 @@ export const TimelineContent = memo(function TimelineContent({
       );
     }
 
-    // Detect hovered item
+    // Detect the clip rectangle under the cursor (if any) and its type.
+    // Only video and image clips trigger a preview-canvas frame swap; the ghost
+    // playhead follows the mouse regardless.
     const target = e.target as HTMLElement;
     const itemEl = target.closest('[data-item-id]') as HTMLElement | null;
     const itemId = itemEl?.getAttribute('data-item-id') ?? undefined;
+    const itemType = itemEl?.getAttribute('data-item-type') ?? undefined;
+    const isPreviewableClip = itemType === 'video' || itemType === 'image';
 
     // RAF-throttle the store update
     if (previewRafRef.current !== null) {
@@ -695,7 +734,19 @@ export const TimelineContent = memo(function TimelineContent({
       // this guard, the first mousemove of every drag leaks one preview render.
       if (useSelectionStore.getState().dragState?.isDragging) return;
       if (usePlaybackStore.getState().isPlaying) return;
-      setPreviewFrameRef.current(frame, itemId);
+
+      // Ghost playhead always follows the mouse anywhere on the timeline.
+      // We also stash the hovered item id (any type) so cursor-aware shortcuts
+      // like "split clip at cursor" work for text / shape / audio clips too.
+      setHoverFrameRef.current(frame, itemId);
+
+      // Preview canvas only updates when the cursor is over a video/image clip.
+      // Otherwise clear so the canvas snaps back to the permanent playhead.
+      if (isPreviewableClip) {
+        setPreviewFrameRef.current(frame, itemId);
+      } else if (usePlaybackStore.getState().previewFrame !== null) {
+        setPreviewFrameRef.current(null);
+      }
     });
   }, []);
 
@@ -705,6 +756,7 @@ export const TimelineContent = memo(function TimelineContent({
       previewRafRef.current = null;
     }
     setPreviewFrameRef.current(null);
+    setHoverFrameRef.current(null);
   }, []);
 
   // Calculate the actual timeline duration and width based on content

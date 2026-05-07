@@ -105,6 +105,25 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 5173,
     strictPort: true,
+    /**
+     * Allowed `Host` headers. `dev-editor.kubeez.com` is reached through a
+     * Cloudflare tunnel for end-to-end SSO testing — `*.kubeez.com` cookie
+     * is shared with prod kubeez.com auth, so the real bounce flow works
+     * locally without any allow-list patches on the apex.
+     */
+    allowedHosts: ['localhost', 'dev-editor.kubeez.com'],
+    /**
+     * HMR over the Cloudflare tunnel: when `VITE_DEV_TUNNEL_HOST` is set
+     * (e.g. `dev-editor.kubeez.com`), the websocket client connects through
+     * the tunnel via wss:443. Unset → default behavior for plain localhost.
+     */
+    hmr: process.env.VITE_DEV_TUNNEL_HOST
+      ? {
+          host: process.env.VITE_DEV_TUNNEL_HOST,
+          protocol: 'wss',
+          clientPort: 443,
+        }
+      : undefined,
     /** Same-origin `/api/kubeez/*` → api.kubeez.com (avoids CORS + COEP). Must match production rewrites in vercel.json. */
     proxy: {
       // More specific first: `/api/kubeez` is a prefix of `/api/kubeez/cdn/...`; wrong order sends CDN fetches to the API host (HTML/404).
@@ -126,7 +145,11 @@ export default defineConfig(({ mode }) => ({
     },
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Opener-Policy': 'same-origin',
+      // `same-origin-allow-popups` (vs. `same-origin`) keeps cross-origin
+      // isolation for SharedArrayBuffer in the export pipeline AND keeps
+      // the `window.opener` reference intact for popups we open ourselves
+      // — needed by the Kubeez sign-in popup → callback → postMessage flow.
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
     },
   },
   preview: {
@@ -149,7 +172,7 @@ export default defineConfig(({ mode }) => ({
     },
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
     },
   },
   build: {
@@ -230,6 +253,10 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('/node_modules/soundtouchjs/')) {
             return 'audio-processing';
           }
+          // RNNoise WASM is large; lazy-loaded inside the audio-enhance worker.
+          if (id.includes('@jitsi/rnnoise-wasm')) {
+            return 'audio-rnnoise';
+          }
           if (id.includes('/node_modules/gifuct-js/')) {
             return 'gif-processing';
           }
@@ -250,7 +277,7 @@ export default defineConfig(({ mode }) => ({
     format: 'es',
   },
   optimizeDeps: {
-    exclude: ['mediabunny', '@mediabunny/ac3', '@mediabunny/mp3-encoder'],
+    exclude: ['mediabunny', '@mediabunny/ac3', '@mediabunny/mp3-encoder', '@jitsi/rnnoise-wasm'],
     // Pre-bundle lucide-react for faster dev startup (avoids analyzing 1500+ icons on each reload)
     include: ['lucide-react'],
   },

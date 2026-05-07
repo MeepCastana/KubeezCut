@@ -20,8 +20,8 @@ export function useMarkerShortcuts() {
     hotkeys.ADD_MARKER,
     (event) => {
       event.preventDefault();
-      const { previewFrame, currentFrame } = usePlaybackStore.getState();
-      addMarker(previewFrame ?? currentFrame);
+      const { hoverFrame, currentFrame } = usePlaybackStore.getState();
+      addMarker(hoverFrame ?? currentFrame);
     },
     HOTKEY_OPTIONS,
     []

@@ -85,7 +85,7 @@ describe('createTimelineTemplateItem', () => {
       },
     });
 
-    expect(item.type).toBe('text');
+    if (item.type !== 'text') throw new Error(`expected text item, got ${item.type}`);
     expect(item).toMatchObject({
       label: 'Neon',
       color: '#00ffff',

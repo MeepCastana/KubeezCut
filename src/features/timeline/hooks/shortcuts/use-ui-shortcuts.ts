@@ -119,8 +119,8 @@ export function useUIShortcuts(callbacks: TimelineShortcutCallbacks) {
     hotkeys.ZOOM_TO_100,
     (event) => {
       event.preventDefault();
-      const { currentFrame, previewFrame } = usePlaybackStore.getState();
-      const targetFrame = previewFrame ?? currentFrame;
+      const { currentFrame, hoverFrame } = usePlaybackStore.getState();
+      const targetFrame = hoverFrame ?? currentFrame;
 
       const handler = getZoomTo100Handler();
       if (handler) {
@@ -136,8 +136,8 @@ export function useUIShortcuts(callbacks: TimelineShortcutCallbacks) {
     hotkeys.ZOOM_TO_100_ALT,
     (event) => {
       event.preventDefault();
-      const { currentFrame, previewFrame } = usePlaybackStore.getState();
-      const targetFrame = previewFrame ?? currentFrame;
+      const { currentFrame, hoverFrame } = usePlaybackStore.getState();
+      const targetFrame = hoverFrame ?? currentFrame;
 
       const handler = getZoomTo100Handler();
       if (handler) {

@@ -3,7 +3,12 @@
  * Keeping this in one place ensures the visual snap target matches the actual split frame.
  */
 
-export const RAZOR_PLAYHEAD_SNAP_THRESHOLD_PX = 10;
+/**
+ * Pixel distance within which the razor cursor snaps to the playhead.
+ * Kept tight so users still get pixel-precise cuts elsewhere on the
+ * timeline — we only want to snap when the intent is unambiguous.
+ */
+export const RAZOR_PLAYHEAD_SNAP_THRESHOLD_PX = 5;
 export const RAZOR_SNAP_THRESHOLD_PX = 12;
 
 interface RazorSnapTarget {

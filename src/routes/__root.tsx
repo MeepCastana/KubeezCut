@@ -21,6 +21,13 @@ function RootLayout() {
     }
   }, [pathname]);
 
+  // Auth popup callback runs in a tiny popup window (~520px wide) that
+  // would otherwise trip the mobile gate. Skip the entire shell for it —
+  // the route closes itself in ~200ms.
+  if (pathname === '/auth-popup-callback') {
+    return <Outlet />;
+  }
+
   if (!desktop) {
     return <MobileNotAvailableScreen />;
   }

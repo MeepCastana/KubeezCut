@@ -2,8 +2,11 @@ import React, { useEffect, useRef } from 'react';
 import { getAudioTargetTimeSeconds } from '../utils/video-timing';
 import { useGizmoStore } from '@/features/composition-runtime/deps/stores';
 import { usePlaybackStore } from '@/features/composition-runtime/deps/stores';
+import { createLogger } from '@/shared/logging/logger';
 import type { AudioPlaybackProps } from './audio-playback-props';
 import { useAudioPlaybackState } from './hooks/use-audio-playback-state';
+
+const log = createLogger('PitchCorrectedAudio');
 
 let sharedAudioContext: AudioContext | null = null;
 
@@ -199,7 +202,8 @@ export const PitchCorrectedAudio: React.FC<PitchCorrectedAudioProps> = React.mem
       : Math.max(0, sourceTimeSeconds);
 
     // Detect if frame actually changed (for scrub detection)
-    const frameChanged = frame !== lastFrameRef.current;
+    const prevFrame = lastFrameRef.current;
+    const frameChanged = frame !== prevFrame;
     lastFrameRef.current = frame;
 
     // Guard: Only seek if audio has enough data loaded
@@ -248,12 +252,47 @@ export const PitchCorrectedAudio: React.FC<PitchCorrectedAudioProps> = React.mem
       const needsSync = needsInitialSyncRef.current || audioFarAhead || (audioBehind && timeSinceLastSync > 500);
 
       if (needsSync && canSeek) {
+        const seekReason = needsInitialSyncRef.current
+          ? 'initial-sync'
+          : audioFarAhead
+            ? 'audio-far-ahead'
+            : 'audio-behind';
+        const wasPaused = audio.paused;
+        const seekStartWallMs = performance.now();
+        const fromTime = audio.currentTime;
+        log.info('Audio seek start (playing branch)', {
+          src,
+          seekReason,
+          fromSec: fromTime.toFixed(3),
+          toSec: targetTimeSeconds.toFixed(3),
+          driftSec: drift.toFixed(3),
+          frameDelta: frame - prevFrame,
+          wasPaused,
+          readyState: audio.readyState,
+          buffered: audio.buffered.length > 0
+            ? `${audio.buffered.start(0).toFixed(2)}-${audio.buffered.end(audio.buffered.length - 1).toFixed(2)}`
+            : 'none',
+          timeSinceLastSyncMs: timeSinceLastSync,
+        });
+        const onSeekedTimed = () => {
+          audio.removeEventListener('seeked', onSeekedTimed);
+          log.info('Audio seek complete (playing branch)', {
+            src,
+            seekReason,
+            seekLatencyMs: (performance.now() - seekStartWallMs).toFixed(1),
+            currentTimeSec: audio.currentTime.toFixed(3),
+            readyState: audio.readyState,
+            paused: audio.paused,
+          });
+        };
+        audio.addEventListener('seeked', onSeekedTimed, { once: true });
         try {
           audio.currentTime = targetTimeSeconds;
           lastSyncTimeRef.current = now;
           needsInitialSyncRef.current = false;
         } catch {
           // Seek failed - audio may not be ready yet
+          audio.removeEventListener('seeked', onSeekedTimed);
         }
       }
 
@@ -270,8 +309,21 @@ export const PitchCorrectedAudio: React.FC<PitchCorrectedAudioProps> = React.mem
           // Seek was large but already completed — safe to play
         } else if (seekDistance > 1 && audio.seeking) {
           // Still seeking — defer play until seeked event
+          const deferStartWallMs = performance.now();
+          log.info('Audio play deferred — element still seeking', {
+            src,
+            seekDistanceSec: seekDistance.toFixed(3),
+            currentTimeSec: audio.currentTime.toFixed(3),
+            readyState: audio.readyState,
+          });
           const onSeeked = () => {
             audio.removeEventListener('seeked', onSeeked);
+            log.info('Audio play resumed after deferred seek', {
+              src,
+              deferLatencyMs: (performance.now() - deferStartWallMs).toFixed(1),
+              currentTimeSec: audio.currentTime.toFixed(3),
+              readyState: audio.readyState,
+            });
             if (usePlaybackStore.getState().isPlaying && audio.paused) {
               const ctx = gainNodeRef.current ? getSharedAudioContext() : null;
               if (ctx?.state === 'suspended') ctx.resume();

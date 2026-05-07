@@ -382,6 +382,11 @@ export interface GenerateTextToImageParams {
   quality?: string;
   /** Optional body field for models that accept it (e.g. GPT Image 2 `1K|2K|4K`). */
   resolution?: string;
+  /**
+   * Body field `sound: boolean` for video models whose Kubeez `video_audio` capability is
+   * `toggle_via_sound_param` (e.g. Seedance 2). Omitted when `undefined`.
+   */
+  sound?: boolean;
 }
 
 /**
@@ -407,6 +412,7 @@ export async function generateKubeezMediaBlob(params: GenerateTextToImageParams)
     preferVideoOutput = false,
     quality,
     resolution,
+    sound,
   } = params;
 
   const root = resolveKubeezApiBaseUrl(baseUrl);
@@ -441,6 +447,9 @@ export async function generateKubeezMediaBlob(params: GenerateTextToImageParams)
   }
   if (resolution !== undefined && resolution !== '') {
     body.resolution = resolution;
+  }
+  if (sound !== undefined) {
+    body.sound = sound;
   }
 
   const startRes = await fetch(`${root}/v1/generate/media`, {

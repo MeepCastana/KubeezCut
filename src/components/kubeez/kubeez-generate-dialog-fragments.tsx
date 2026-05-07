@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { KubeezDurationPicker } from '@/components/kubeez/kubeez-duration-picker';
 import type { KubeezMediaModelOption } from '@/infrastructure/kubeez/kubeez-models';
 import {
   kubeezModelCardGradientBackground,
@@ -378,6 +379,11 @@ export interface KubeezGenerateSelectedModelPanelProps {
   /** Local dialog state — not encoded in `model_id`. */
   videoAspectRatio?: string;
   onVideoAspectRatioChange: (next: string) => void;
+  /** Local dialog state for duration sent as the API `duration` body field. */
+  videoDuration: string;
+  onVideoDurationChange: (next: string) => void;
+  /** Renders the duration control inside the parameters block when true. */
+  showDurationControl: boolean;
   modelFamilyItem: KubeezModelFamilyGridItem | null;
   videoFooterHint: string | null;
   busy: boolean;
@@ -395,6 +401,9 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
   onPatchModelSettings,
   videoAspectRatio: videoAspectRatioProp,
   onVideoAspectRatioChange,
+  videoDuration,
+  onVideoDurationChange,
+  showDurationControl,
   modelFamilyItem,
   videoFooterHint,
   busy,
@@ -453,7 +462,7 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
     modelFamilyItem?.baseCardId === 'kling-2-6' ||
     modelFamilyItem?.baseCardId === 'kling-2-6-motion' ||
     modelFamilyItem?.baseCardId === 'kling-3-0' ||
-    modelFamilyItem?.baseCardId === 'sora-2' ||
+    modelFamilyItem?.baseCardId === 'seedance-2-fast' ||
     modelFamilyItem?.baseCardId === 'veo3-1' ||
     modelFamilyItem?.baseCardId === 'wan-2-5';
 
@@ -483,11 +492,11 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
     line: 'std' as const,
     motionResolution: '720p' as const,
   };
-  const sora2 = modelSettings.sora2 ?? {
-    tier: 'base' as const,
-    mode: 'text-to-video' as const,
-    duration: '10s' as const,
-    proQuality: 'standard' as const,
+  const seedance2 = modelSettings.seedance2 ?? {
+    tier: 'fast' as const,
+    resolution: '720p' as const,
+    videoRef: false,
+    withAudio: true,
   };
   const zImageTier = modelSettings.zImageTier ?? 'standard';
   const gpt15ImageQuality = modelSettings.gpt15ImageQuality ?? 'medium';
@@ -510,17 +519,6 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
     return getVideoAspectUi(resolvedModelId, { veoMode: veo31.mode });
   }, [model?.mediaKind, resolvedModelId, veo31.mode]);
   const videoAspectValue = videoAspectRatioProp ?? videoAspectUi?.defaultValue;
-  const sora2ModeRows =
-    sora2.tier === 'pro'
-      ? ([
-          { mode: 'text-to-video' as const, label: 'Text-to-video' },
-          { mode: 'image-to-video' as const, label: 'Image-to-video' },
-          { mode: 'storyboard' as const, label: 'Storyboard' },
-        ] as const)
-      : ([
-          { mode: 'text-to-video' as const, label: 'Text-to-video' },
-          { mode: 'image-to-video' as const, label: 'Image-to-video' },
-        ] as const);
   const simpleVariantsSorted = modelFamilyItem
     ? [...modelFamilyItem.variants]
         .filter((v) => !isAutoRoutedEditVariant(v.model_id))
@@ -938,36 +936,18 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
         </div>
       ) : null}
 
-      {modelFamilyItem?.baseCardId === 'sora-2' ? (
+      {modelFamilyItem?.baseCardId === 'seedance-2-fast' ? (
         <div className="space-y-2.5 border-t border-border/50 pt-3">
           <div className="space-y-1">
-            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Tier</p>
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Quality</p>
             <div className="flex flex-wrap gap-1">
               {(
                 [
-                  {
-                    tier: 'base' as const,
-                    label: 'Base',
-                    patch: {
-                      tier: 'base' as const,
-                      mode: sora2.mode === 'storyboard' ? ('text-to-video' as const) : sora2.mode,
-                      duration: (sora2.duration === '25s' ? '10s' : sora2.duration) as '10s' | '15s',
-                      proQuality: 'standard' as const,
-                    },
-                  },
-                  {
-                    tier: 'pro' as const,
-                    label: 'Pro',
-                    patch: {
-                      tier: 'pro' as const,
-                      mode: sora2.mode === 'storyboard' ? 'storyboard' : sora2.mode,
-                      duration: sora2.duration,
-                      proQuality: sora2.proQuality,
-                    },
-                  },
+                  { tier: 'fast' as const, label: 'Fast' },
+                  { tier: 'standard' as const, label: 'Standard' },
                 ] as const
-              ).map(({ tier, label, patch }) => {
-                const active = sora2.tier === tier;
+              ).map(({ tier, label }) => {
+                const active = seedance2.tier === tier;
                 return (
                   <Button
                     key={tier}
@@ -975,8 +955,45 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
                     size="sm"
                     variant={active ? 'default' : 'outline'}
                     disabled={disabled}
-                    className="h-7 min-w-[4.5rem] px-2 text-[11px]"
-                    onClick={() => onPatchModelSettings({ sora2: { ...sora2, ...patch } })}
+                    className="h-7 min-w-[5.5rem] px-2 text-[11px]"
+                    onClick={() => {
+                      // Switching to Fast forces 1080p down to 720p (Fast doesn't ship 1080p).
+                      const resolution =
+                        tier === 'fast' && seedance2.resolution === '1080p'
+                          ? ('720p' as const)
+                          : seedance2.resolution;
+                      onPatchModelSettings({ seedance2: { ...seedance2, tier, resolution } });
+                    }}
+                  >
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Resolution</p>
+            <div className="flex flex-wrap gap-1">
+              {(
+                [
+                  { id: '480p' as const, label: '480p' },
+                  { id: '720p' as const, label: '720p' },
+                  { id: '1080p' as const, label: '1080p' },
+                ] as const
+              ).map(({ id, label }) => {
+                const active = seedance2.resolution === id;
+                // Fast tier doesn't expose 1080p — disable that button when Fast is selected.
+                const unavailable = id === '1080p' && seedance2.tier === 'fast';
+                return (
+                  <Button
+                    key={id}
+                    type="button"
+                    size="sm"
+                    variant={active ? 'default' : 'outline'}
+                    disabled={disabled || unavailable}
+                    className="h-7 min-w-[3.5rem] px-2 text-[11px]"
+                    title={unavailable ? '1080p is only available on Standard quality' : undefined}
+                    onClick={() => onPatchModelSettings({ seedance2: { ...seedance2, resolution: id } })}
                   >
                     {label}
                   </Button>
@@ -987,27 +1004,22 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
           <div className="space-y-1">
             <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Mode</p>
             <div className="flex flex-wrap gap-1">
-              {sora2ModeRows.map(({ mode, label }) => {
-                const active = sora2.mode === mode;
+              {(
+                [
+                  { ref: false, label: 'Text-to-video' },
+                  { ref: true, label: 'Image-to-video' },
+                ] as const
+              ).map(({ ref, label }) => {
+                const active = seedance2.videoRef === ref;
                 return (
                   <Button
-                    key={mode}
+                    key={String(ref)}
                     type="button"
                     size="sm"
                     variant={active ? 'default' : 'outline'}
                     disabled={disabled}
                     className="h-7 min-w-[7rem] px-2 text-[11px]"
-                    onClick={() => {
-                      let duration = sora2.duration;
-                      if (mode === 'storyboard') {
-                        if (duration !== '10s' && duration !== '15s' && duration !== '25s') {
-                          duration = '10s';
-                        }
-                      } else if (duration === '25s') {
-                        duration = '10s';
-                      }
-                      onPatchModelSettings({ sora2: { ...sora2, mode, duration } });
-                    }}
+                    onClick={() => onPatchModelSettings({ seedance2: { ...seedance2, videoRef: ref } })}
                   >
                     {label}
                   </Button>
@@ -1016,57 +1028,33 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
             </div>
           </div>
           <div className="space-y-1">
-            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Duration</p>
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Audio</p>
             <div className="flex flex-wrap gap-1">
-              {(sora2.mode === 'storyboard'
-                ? (['10s', '15s', '25s'] as const)
-                : (['10s', '15s'] as const)
-              ).map((dur) => {
-                const active = sora2.duration === dur;
+              {(
+                [
+                  { audio: true, label: 'On' },
+                  { audio: false, label: 'Off' },
+                ] as const
+              ).map(({ audio, label }) => {
+                const active = seedance2.withAudio === audio;
                 return (
                   <Button
-                    key={dur}
+                    key={String(audio)}
                     type="button"
                     size="sm"
                     variant={active ? 'default' : 'outline'}
                     disabled={disabled}
-                    className="h-7 min-w-[2.75rem] px-2 text-[11px]"
-                    onClick={() => onPatchModelSettings({ sora2: { ...sora2, duration: dur } })}
+                    className="h-7 min-w-[5rem] px-2 text-[11px]"
+                    onClick={() =>
+                      onPatchModelSettings({ seedance2: { ...seedance2, withAudio: audio } })
+                    }
                   >
-                    {dur}
+                    {label}
                   </Button>
                 );
               })}
             </div>
           </div>
-          {sora2.tier === 'pro' && sora2.mode !== 'storyboard' ? (
-            <div className="space-y-1">
-              <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Quality</p>
-              <div className="flex flex-wrap gap-1">
-                {(
-                  [
-                    { id: 'hd' as const, label: 'HD' },
-                    { id: 'standard' as const, label: 'Standard' },
-                  ] as const
-                ).map(({ id, label }) => {
-                  const active = sora2.proQuality === id;
-                  return (
-                    <Button
-                      key={id}
-                      type="button"
-                      size="sm"
-                      variant={active ? 'default' : 'outline'}
-                      disabled={disabled}
-                      className="h-7 min-w-[5rem] px-2 text-[11px]"
-                      onClick={() => onPatchModelSettings({ sora2: { ...sora2, proQuality: id } })}
-                    >
-                      {label}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
         </div>
       ) : null}
 
@@ -1447,6 +1435,18 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
               );
             })}
           </div>
+        </div>
+      )}
+
+      {showDurationControl && model?.durationOptions && model.durationOptions.length > 0 && (
+        <div className="space-y-1.5 border-t border-border/50 pt-3">
+          <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Duration</p>
+          <KubeezDurationPicker
+            options={model.durationOptions}
+            value={videoDuration}
+            onChange={onVideoDurationChange}
+            disabled={disabled}
+          />
         </div>
       )}
 

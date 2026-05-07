@@ -18,6 +18,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/infrastructure/supabase/client';
 import { clearAllSupabaseAuthStorage } from '@/infrastructure/supabase/cross-subdomain-storage';
 import { createLogger } from '@/shared/logging/logger';
+import { clearKubeezProfileCache } from './use-kubeez-profile';
 
 const logger = createLogger('KubeezSession');
 
@@ -94,6 +95,7 @@ export function useKubeezSession(): KubeezSessionState {
       }
     }
     clearAllSupabaseAuthStorage();
+    clearKubeezProfileCache();
     setSession(null);
   };
 

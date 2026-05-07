@@ -26,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -396,9 +395,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 </div>
               )}
 
-              {activeSection === 'kubeez' && (
-                <KubeezAccountSettings inputIdPrefix="editor-settings-kubeez-api-key" />
-              )}
+              {activeSection === 'kubeez' && <KubeezAccountSettings />}
 
               {activeSection === 'timeline' && (
                 <div className="space-y-3">

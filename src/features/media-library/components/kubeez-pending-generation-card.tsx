@@ -3,14 +3,6 @@ import type { KubeezPendingGeneration } from '@/features/media-library/types';
 import { cn } from '@/shared/ui/cn';
 import { Loader2 } from 'lucide-react';
 
-function formatEta(seconds: number): string {
-  if (seconds <= 0) return 'any moment';
-  if (seconds < 60) return `~${Math.ceil(seconds)}s`;
-  const m = Math.floor(seconds / 60);
-  const s = Math.ceil(seconds % 60);
-  return s > 0 ? `~${m}m ${s}s` : `~${m}m`;
-}
-
 function useElapsed(createdAt: number): number {
   const [elapsed, setElapsed] = useState(() => Math.max(0, (Date.now() - createdAt) / 1000));
   useEffect(() => {
@@ -30,7 +22,6 @@ export function KubeezPendingGenerationCard({
   const elapsed = useElapsed(pending.createdAt);
   const eta = pending.estimatedTimeSeconds;
   const progress = eta && eta > 0 ? Math.min(0.95, elapsed / eta) : null;
-  const remaining = eta && eta > 0 ? Math.max(0, eta - elapsed) : null;
 
   if (viewMode === 'list') {
     return (
@@ -43,9 +34,7 @@ export function KubeezPendingGenerationCard({
         </div>
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-2 pr-2">
           <p className="truncate text-xs font-medium text-foreground">{pending.modelDisplayName}</p>
-          <p className="text-[10px] text-muted-foreground">
-            {remaining != null ? formatEta(remaining) : 'Generating...'}
-          </p>
+          <p className="text-[10px] text-muted-foreground">Generating…</p>
         </div>
       </div>
     );
@@ -90,15 +79,6 @@ export function KubeezPendingGenerationCard({
       {/* Model name */}
       <p className="max-w-full truncate px-2 text-[10px] font-medium text-foreground/70">
         {pending.modelDisplayName}
-      </p>
-
-      {/* ETA */}
-      <p className="text-[9px] tabular-nums text-muted-foreground">
-        {remaining != null && remaining > 0
-          ? formatEta(remaining)
-          : elapsed > 0
-            ? 'Finishing...'
-            : 'Starting...'}
       </p>
     </div>
   );

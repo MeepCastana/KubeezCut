@@ -71,15 +71,6 @@ export function getVideoAspectUi(
     };
   }
 
-  if (base === 'sora-2') {
-    return {
-      options: [
-        { value: '16:9', label: '16:9' },
-        { value: '9:16', label: '9:16' },
-      ],
-      defaultValue: '16:9',
-    };
-  }
 
   if (base === 'wan-2-5') {
     return {
@@ -108,6 +99,40 @@ export function getVideoAspectUi(
   if (base === 'seedance-1-5-pro') {
     return {
       options: SEEDANCE_15_PRO_ASPECT_RATIOS.map((r) => ({ value: r, label: r })),
+      defaultValue: '16:9',
+    };
+  }
+
+  if (base === 'seedance-2-fast') {
+    // Seedance 2 supports the full `aspect_ratio` enum including the wider `21:9`,
+    // `2:3`, `3:2`, and `adaptive` (Auto). Source: api.kubeez.com OpenAPI —
+    // "seedance-2 adds 21:9 and adaptive".
+    return {
+      options: [
+        { value: '16:9', label: '16:9' },
+        { value: '9:16', label: '9:16' },
+        { value: '1:1', label: '1:1' },
+        { value: '4:3', label: '4:3' },
+        { value: '3:4', label: '3:4' },
+        { value: '21:9', label: '21:9' },
+        { value: '2:3', label: '2:3' },
+        { value: '3:2', label: '3:2' },
+        { value: 'adaptive', label: 'Adaptive' },
+      ],
+      defaultValue: '16:9',
+    };
+  }
+
+  if (base === 'p-video') {
+    // P-Video accepts a wide aspect-ratio set per Kubeez REST docs / live capabilities.
+    return {
+      options: [
+        { value: '16:9', label: '16:9' },
+        { value: '9:16', label: '9:16' },
+        { value: '1:1', label: '1:1' },
+        { value: '4:3', label: '4:3' },
+        { value: '3:4', label: '3:4' },
+      ],
       defaultValue: '16:9',
     };
   }

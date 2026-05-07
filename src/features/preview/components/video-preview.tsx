@@ -3610,23 +3610,76 @@ export const VideoPreview = memo(function VideoPreview({
             }
           }
 
-          if (prewarmItemIds.length > 0) {
+          // Reposition 1× DOM video elements for clips active in the next ~3s.
+          // Without this, item-layout changes that happen while paused (drag,
+          // ripple, slip, undo, etc.) leave element.currentTime stale; play-start
+          // then stalls 100-500ms while the element seeks to catch up. Run in
+          // parallel with mediabunny prewarm so neither path serializes the other.
+          const domSeekTasks: Promise<void>[] = [];
+          const lookahead1xFrames = Math.round(fps * 3);
+          for (const track of combinedTracks) {
+            for (const item of track.items) {
+              if (item.type !== 'video' || !('src' in item) || !item.src) continue;
+              if (!item.sourceFps) continue;
+              const speed = item.speed ?? 1;
+              if (Math.abs(speed - 1) >= 0.01) continue;
+              const itemEnd = item.from + item.durationInFrames;
+              if (itemEnd <= frame) continue;
+              if (item.from > frame + lookahead1xFrames) continue;
+              const el = getBestDomVideoElementForItem(item.id);
+              if (!el) continue;
+              const targetFrame = Math.max(frame, item.from);
+              const localFrame = targetFrame - item.from;
+              const sourceStart = item.sourceStart ?? item.trimStart ?? 0;
+              const targetTime = (sourceStart / item.sourceFps) + (localFrame / fps) * speed;
+              if (Math.abs(el.currentTime - targetTime) < 0.05) continue;
+              domSeekTasks.push(new Promise<void>((resolve) => {
+                let done = false;
+                const finish = () => {
+                  if (done) return;
+                  done = true;
+                  el.removeEventListener('seeked', finish);
+                  clearTimeout(timeoutId);
+                  resolve();
+                };
+                el.addEventListener('seeked', finish, { once: true });
+                const timeoutId = setTimeout(finish, 200);
+                try {
+                  el.currentTime = targetTime;
+                } catch {
+                  finish();
+                }
+              }));
+            }
+          }
+
+          const hasMediabunnyPrewarm = prewarmItemIds.length > 0;
+          const hasDomPrewarm = domSeekTasks.length > 0;
+          if (hasMediabunnyPrewarm || hasDomPrewarm) {
             // Prewarm first, then start rAF pump — avoids 150ms+ first-frame stall.
             // Set flag to prevent subscription from pumping render loop during prewarm.
-            // SKIP items already pre-seeked by the paused occlusion prewarm — re-seeking
-            // to the current frame would undo the precise visibility-frame positioning.
             playbackPrewarmInFlight = true;
             void (async () => {
-              const renderer = await ensureFastScrubRenderer();
-              if (renderer && 'prewarmItems' in renderer) {
-                // Only prewarm items that weren't already positioned by pause prewarm
-                const needsPrewarm = prewarmItemIds.filter(
-                  (id) => !pausePrewarmedItemIds.has(id),
-                );
-                if (needsPrewarm.length > 0) {
-                  await renderer.prewarmItems(needsPrewarm, frame);
-                }
+              const tasks: Promise<unknown>[] = [];
+              if (hasMediabunnyPrewarm) {
+                tasks.push((async () => {
+                  const renderer = await ensureFastScrubRenderer();
+                  if (renderer && 'prewarmItems' in renderer) {
+                    // Only prewarm items that weren't already positioned by
+                    // pause prewarm — re-seeking would undo precise positioning.
+                    const needsPrewarm = prewarmItemIds.filter(
+                      (id) => !pausePrewarmedItemIds.has(id),
+                    );
+                    if (needsPrewarm.length > 0) {
+                      await renderer.prewarmItems(needsPrewarm, frame);
+                    }
+                  }
+                })());
               }
+              if (hasDomPrewarm) {
+                tasks.push(Promise.all(domSeekTasks));
+              }
+              await Promise.all(tasks);
               pausePrewarmedItemIds.clear();
               playbackPrewarmInFlight = false;
               if (playbackRafId === null && usePlaybackStore.getState().isPlaying) {

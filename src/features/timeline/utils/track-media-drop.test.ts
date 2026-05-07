@@ -46,8 +46,9 @@ describe('planTrackMediaDropPlacements', () => {
 
     expect(result.plannedItems).toHaveLength(1);
     const [videoPlacement, audioPlacement] = result.plannedItems[0]!.placements;
-    expect(videoPlacement).toMatchObject({ trackId: 'track-1', mediaType: 'video', from: 24 });
-    expect(audioPlacement).toMatchObject({ mediaType: 'audio', from: 24 });
+    // First clip into an empty target lane snaps to frame 0 even though dropFrame was 24.
+    expect(videoPlacement).toMatchObject({ trackId: 'track-1', mediaType: 'video', from: 0 });
+    expect(audioPlacement).toMatchObject({ mediaType: 'audio', from: 0 });
     expect(audioPlacement!.trackId).not.toBe('track-1');
     expect(result.tracks.filter((track) => getTrackKind(track) === 'audio')).toHaveLength(1);
   });
@@ -75,8 +76,8 @@ describe('planTrackMediaDropPlacements', () => {
     });
 
     expect(result.plannedItems[0]!.placements).toEqual([
-      expect.objectContaining({ trackId: 'v2', mediaType: 'video', from: 30 }),
-      expect.objectContaining({ trackId: 'a2', mediaType: 'audio', from: 30 }),
+      expect.objectContaining({ trackId: 'v2', mediaType: 'video', from: 0 }),
+      expect.objectContaining({ trackId: 'a2', mediaType: 'audio', from: 0 }),
     ]);
   });
 
@@ -103,8 +104,8 @@ describe('planTrackMediaDropPlacements', () => {
     });
 
     expect(result.plannedItems[0]!.placements).toEqual([
-      expect.objectContaining({ trackId: 'v2', mediaType: 'video', from: 42 }),
-      expect.objectContaining({ trackId: 'a2', mediaType: 'audio', from: 42 }),
+      expect.objectContaining({ trackId: 'v2', mediaType: 'video', from: 0 }),
+      expect.objectContaining({ trackId: 'a2', mediaType: 'audio', from: 0 }),
     ]);
   });
 
@@ -131,7 +132,7 @@ describe('planTrackMediaDropPlacements', () => {
     expect(result.plannedItems[0]!.placements[0]).toMatchObject({
       trackId: 'track-1',
       mediaType: 'image',
-      from: 12,
+      from: 0,
       durationInFrames: 45,
     });
   });
@@ -198,10 +199,57 @@ describe('planTrackMediaDropPlacements', () => {
 
     expect(result.plannedItems).toHaveLength(1);
     const placement = result.plannedItems[0]!.placements[0];
-    expect(placement).toMatchObject({ mediaType: 'audio', from: 12, durationInFrames: 90 });
+    // Empty target lane snaps the first clip to frame 0.
+    expect(placement).toMatchObject({ mediaType: 'audio', from: 0, durationInFrames: 90 });
     const host = result.tracks.find((t) => t.id === placement!.trackId);
     expect(getTrackKind(host!)).toBe('audio');
     expect(result.tracks.filter((t) => getTrackKind(t) === 'audio')).toHaveLength(1);
+  });
+
+  it('honors the cursor frame when the target track already has an item', () => {
+    const tracks = createDefaultClassicTracks(72);
+
+    const result = planTrackMediaDropPlacements({
+      entries: [{
+        payload: { id: 'media-2' },
+        label: 'second.mp4',
+        mediaType: 'image',
+        durationInFrames: 30,
+      }],
+      dropFrame: 100,
+      tracks,
+      // Existing clip occupying [0, 60) on track-1 — no longer "empty", so snap is disabled.
+      existingItems: [{ trackId: 'track-1', from: 0, durationInFrames: 60 }],
+      dropTargetTrackId: 'track-1',
+    });
+
+    expect(result.plannedItems).toHaveLength(1);
+    expect(result.plannedItems[0]!.placements[0]).toMatchObject({
+      trackId: 'track-1',
+      mediaType: 'image',
+      from: 100,
+    });
+  });
+
+  it('multi-entry drop onto an empty track snaps the first to 0 and chains the rest', () => {
+    const tracks = createDefaultClassicTracks(72);
+
+    const result = planTrackMediaDropPlacements({
+      entries: [
+        { payload: { id: 'a' }, label: 'a.png', mediaType: 'image', durationInFrames: 30 },
+        { payload: { id: 'b' }, label: 'b.png', mediaType: 'image', durationInFrames: 45 },
+        { payload: { id: 'c' }, label: 'c.png', mediaType: 'image', durationInFrames: 20 },
+      ],
+      dropFrame: 500,
+      tracks,
+      existingItems: [],
+      dropTargetTrackId: 'track-1',
+    });
+
+    expect(result.plannedItems).toHaveLength(3);
+    expect(result.plannedItems[0]!.placements[0]).toMatchObject({ from: 0, durationInFrames: 30 });
+    expect(result.plannedItems[1]!.placements[0]).toMatchObject({ from: 30, durationInFrames: 45 });
+    expect(result.plannedItems[2]!.placements[0]).toMatchObject({ from: 75, durationInFrames: 20 });
   });
 });
 
@@ -232,12 +280,13 @@ describe('buildGhostPreviewsFromTrackMediaDropPlan', () => {
 
     const audioTrackId = plannedItems[0]!.placements.find((placement) => placement.mediaType === 'audio')?.trackId;
     expect(audioTrackId).toBeDefined();
+    // Both companion ghost rectangles snap to left: 0 because the target lanes are empty.
     expect(ghosts).toEqual([
-      expect.objectContaining({ targetTrackId: 'track-1', type: 'video', left: 24, width: 90 }),
+      expect.objectContaining({ targetTrackId: 'track-1', type: 'video', left: 0, width: 90 }),
       expect.objectContaining({
         targetTrackId: audioTrackId,
         type: 'audio',
-        left: 24,
+        left: 0,
         width: 90,
         previewBelowTrackId: 'track-1',
       }),
@@ -275,7 +324,7 @@ describe('buildGhostPreviewsFromTrackMediaDropPlan', () => {
         targetTrackId: placement.trackId,
         previewAboveTrackId: 'a1',
         type: 'image',
-        left: 6,
+        left: 0,
         width: 48,
       }),
     ]);
@@ -313,7 +362,7 @@ describe('buildGhostPreviewsFromTrackMediaDropPlan', () => {
         targetTrackId: placement.trackId,
         previewBelowTrackId: 'track-1',
         type: 'audio',
-        left: 12,
+        left: 0,
         width: 90,
       }),
     ]);

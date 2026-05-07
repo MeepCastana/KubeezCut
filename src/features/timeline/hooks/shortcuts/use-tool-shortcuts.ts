@@ -54,13 +54,16 @@ export function useToolShortcuts(callbacks: TimelineShortcutCallbacks) {
     hotkeys.SPLIT_AT_CURSOR,
     (event) => {
       event.preventDefault();
-      const { previewFrame, previewItemId, currentFrame } = usePlaybackStore.getState();
-      const splitFrame = previewFrame ?? currentFrame;
+      // `hoverItemId` is the clip the cursor is over (any type).
+      // `hoverFrame` is the cursor's timeline frame — using it instead of
+      // `previewFrame` makes the shortcut work for text / shape / audio clips
+      // too, not just video / image.
+      const { hoverFrame, hoverItemId, currentFrame } = usePlaybackStore.getState();
+      const splitFrame = hoverFrame ?? currentFrame;
       const { items, splitItem } = useTimelineStore.getState();
 
-      // If hovering over a specific item, split only that item
-      if (previewItemId) {
-        const item = items.find((i) => i.id === previewItemId);
+      if (hoverItemId) {
+        const item = items.find((i) => i.id === hoverItemId);
         if (item && splitFrame > item.from && splitFrame < item.from + item.durationInFrames) {
           splitItem(item.id, splitFrame);
           if (callbacks.onSplit) {

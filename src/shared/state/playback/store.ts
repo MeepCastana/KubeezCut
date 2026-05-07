@@ -31,6 +31,8 @@ export const usePlaybackStore = create<PlaybackState & PlaybackActions>()(
       previewFrameEpoch: 0,
       frameUpdateEpoch: 0,
       previewItemId: null,
+      hoverFrame: null,
+      hoverItemId: null,
       captureFrame: null, // Set by VideoPreview when Player is mounted
       captureFrameImageData: null,
       captureCanvasSource: null,
@@ -92,6 +94,13 @@ export const usePlaybackStore = create<PlaybackState & PlaybackActions>()(
             previewFrameEpoch: nextEpoch,
             frameUpdateEpoch: nextEpoch,
           };
+        }),
+      setHoverFrame: (frame, itemId) =>
+        set((state) => {
+          const nextFrame = frame == null ? null : normalizeFrame(frame);
+          const nextItemId = frame == null ? null : (itemId ?? null);
+          if (state.hoverFrame === nextFrame && state.hoverItemId === nextItemId) return state;
+          return { hoverFrame: nextFrame, hoverItemId: nextItemId };
         }),
       setDisplayedFrame: (frame) =>
         set((state) => {

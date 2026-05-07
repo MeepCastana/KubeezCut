@@ -10,12 +10,12 @@
  * Matrix (model_id → prompt_max_chars, notes):
  * - Seedream V4 / V4 edit: 2500; V4.5 / V4.5 edit: 3000; 5 Lite: 2995
  * - Flux 2 variants: 5000; Logo Maker: 10000
- * - Nano Banana / edit / Imagen 4 / Sora 2 / Grok / Qwen / P-Image / Z-Image: 5000 (web bucket)
+ * - Nano Banana / edit / Imagen 4 / Grok / Qwen / P-Image / Z-Image: 5000 (web bucket)
  * - Nano Banana Pro / Nano Banana 2 families: 20000
  * - GPT 1.5 Image: 3000
  * - Grok T2I aspects: 1:1, 2:3, 3:2
  * - Kling 2.5 / 2.6 / 3.0: 2500; Seedance 1.5 Pro: 2500; V1 Pro Fast I2V: 5000; Wan 2.5: 800
- * - Veo 3.1 / Sora 2 variant ids: 5000
+ * - Veo 3.1 variant ids: 5000
  * - Music (built-in tool ids): 400
  */
 
@@ -128,8 +128,18 @@ const EXACT: Record<string, Partial<KubeezMediaModelOption>> = {
   'seedance-2-fast-480p-video-ref': { prompt_max_chars: 2500 },
   'seedance-2-fast-720p-video-ref': { prompt_max_chars: 2500 },
 
-  // P-Video (unique prompt cap, accepts image + audio references).
-  'p-video': { prompt_max_chars: 2000 },
+  // P-Video (Pruna AI) — accepts 1 image + 1 audio reference. Duration is a body field
+  // (1s..20s integer seconds). Aspect is a body field (`aspect_ratio`). Native audio is
+  // present in the output (driven by the audio reference / scene).
+  'p-video': {
+    prompt_max_chars: 2000,
+    aspectRatioOptions: ['16:9', '9:16', '1:1', '4:3', '3:4'],
+    durationOptions: [
+      '1s', '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s', '10s',
+      '11s', '12s', '13s', '14s', '15s', '16s', '17s', '18s', '19s', '20s',
+    ],
+    supports_sound: true,
+  },
 
   'v1-pro-fast-i2v-720p-5s': { prompt_max_chars: 5000 },
   'v1-pro-fast-i2v-1080p-5s': { prompt_max_chars: 5000 },
@@ -138,9 +148,6 @@ const EXACT: Record<string, Partial<KubeezMediaModelOption>> = {
 
   'grok-text-to-video-6s': { prompt_max_chars: 5000 },
   'grok-image-to-video': { prompt_max_chars: 5000 },
-
-  'sora-2-text-to-video-10s': { prompt_max_chars: 5000 },
-  'sora-2-image-to-video-10s': { prompt_max_chars: 5000 },
 
   'veo3-1-fast-text-to-video': { prompt_max_chars: 5000 },
   'veo3-1-text-to-video': { prompt_max_chars: 5000 },
@@ -169,7 +176,6 @@ const PREFIX_RULES: { idPrefix: string; patch: Partial<KubeezMediaModelOption> }
   { idPrefix: 'wan-2-5-', patch: { prompt_max_chars: 800 } },
   { idPrefix: 'wan-2-5', patch: { prompt_max_chars: 800 } },
   { idPrefix: 'grok-', patch: { prompt_max_chars: 5000 } },
-  { idPrefix: 'sora-2-', patch: { prompt_max_chars: 5000 } },
   { idPrefix: 'veo3-1-', patch: { prompt_max_chars: 5000 } },
   { idPrefix: 'veo3-', patch: { prompt_max_chars: 5000 } },
   { idPrefix: 'flux-2-', patch: { prompt_max_chars: 5000, aspectRatioOptions: [...DEFAULT_IMAGE_ASPECTS] } },

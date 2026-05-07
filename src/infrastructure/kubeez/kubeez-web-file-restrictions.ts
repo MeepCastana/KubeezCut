@@ -140,23 +140,6 @@ export function getFileLimitForModel(
     };
   }
 
-  // Sora 2: Image-to-Video mode requires exactly 1 image
-  if ((model === 'sora-2' || model.startsWith('sora-2-')) && generationType === 'IMAGE_2_VIDEO') {
-    return {
-      maxFiles: 1,
-      message: 'Sora 2 Image-to-Video requires exactly 1 image. Please remove extra images.',
-      translationKey: 'errors.maxImagesExceededSora2ImageToVideo',
-    };
-  }
-
-  // Sora 2: Text-to-Video mode (no images allowed)
-  if ((model === 'sora-2' || model.startsWith('sora-2-')) && generationType === 'TEXT_2_VIDEO') {
-    return {
-      maxFiles: 0,
-      message: 'Sora 2 Text-to-Video does not support image attachments',
-    };
-  }
-
   // Wan 2.5
   if (model === 'wan-2-5' || model.startsWith('wan-2-5-')) {
     return {
@@ -213,14 +196,6 @@ export function getFileLimitForModel(
     return {
       maxFiles: 10,
       message: 'Image to Image mode: Max 10 images',
-    };
-  }
-
-  // Sora 2 Pro Storyboard: supports optional file attachments (0-1 images)
-  if (model === 'sora-2-pro-storyboard' || model.startsWith('sora-2-pro-storyboard-')) {
-    return {
-      maxFiles: 1,
-      message: 'Sora 2 Pro Storyboard supports maximum 1 image.',
     };
   }
 

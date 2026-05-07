@@ -28,11 +28,6 @@ describe('kubeez-web-file-restrictions (KubeezWebsite parity)', () => {
     expect(getFileLimitForModel('kling-2-6-image-to-video-5s', 'IMAGE_2_VIDEO').maxFiles).toBe(1);
   });
 
-  it('Sora 2 T2V: 0; I2V: 1', () => {
-    expect(getFileLimitForModel('sora-2-text-to-video-10s', 'TEXT_2_VIDEO').maxFiles).toBe(0);
-    expect(getFileLimitForModel('sora-2-image-to-video-10s', 'IMAGE_2_VIDEO').maxFiles).toBe(1);
-  });
-
   it('getMaxFileSizeForModel: motion control video 100MB cap', () => {
     expect(getMaxFileSizeForModel('kling-3-0-motion-control-720p', 'video/mp4')).toBe(100 * 1024 * 1024);
     expect(getMaxFileSizeForModel('kling-3-0-motion-control-720p', 'image/jpeg')).toBe(MAX_FILE_SIZE);

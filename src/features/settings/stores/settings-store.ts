@@ -39,10 +39,6 @@ interface AppSettings {
   /** Default export quality preset */
   defaultExportQuality: 'low' | 'medium' | 'high' | 'ultra';
 
-  /** Kubeez API key for generate-from-editor (optional) */
-  kubeezApiKey: string;
-  /** Override for unusual API hosts; normally empty (same-origin `/api/kubeez` or build `VITE_KUBEEZ_BROWSER_API_URL`). */
-  kubeezApiBaseUrl: string;
   // Whisper defaults
   defaultWhisperModel: MediaTranscriptModel;
   defaultWhisperQuantization: MediaTranscriptQuantization;
@@ -94,8 +90,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   defaultExportFormat: 'mp4',
   defaultExportQuality: 'high',
 
-  kubeezApiKey: '',
-  kubeezApiBaseUrl: '',
   // Whisper defaults
   defaultWhisperModel: DEFAULT_WHISPER_MODEL,
   defaultWhisperQuantization: DEFAULT_WHISPER_QUANTIZATION,

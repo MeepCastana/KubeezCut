@@ -32,6 +32,20 @@ export const KUBEEZ_MODEL_FAMILY_REGISTRY: KubeezModelFamilyRegistryEntry[] = [
     matchModelId: (id) => id.startsWith('seedance-1-5-pro-'),
   },
   {
+    baseCardId: 'seedance-2-fast',
+    mediaKind: 'video',
+    strategy: 'composed',
+    displayName: 'Seedance 2',
+    /**
+     * Catches every Seedance 2 model_id the API returns — `seedance-2-fast`,
+     * `seedance-2-fast-{480p,720p}[-video-ref]`, AND the un-`fast`-suffixed
+     * resolution variants (`seedance-2-{480p,720p,1080p}[-video-ref]`).
+     * The picker collapses them into ONE Seedance 2 card and the right
+     * panel surfaces the variant choices — same pattern as Kling/Veo.
+     */
+    matchModelId: (id) => id.startsWith('seedance-2-'),
+  },
+  {
     baseCardId: 'v1-pro-fast-i2v',
     mediaKind: 'video',
     strategy: 'composed',
@@ -61,16 +75,6 @@ export const KUBEEZ_MODEL_FAMILY_REGISTRY: KubeezModelFamilyRegistryEntry[] = [
     matchModelId: (id) => id.startsWith('kling-3-0-'),
   },
   {
-    baseCardId: 'sora-2',
-    mediaKind: 'video',
-    strategy: 'composed',
-    displayName: 'Sora 2',
-    matchModelId: (id) =>
-      id.startsWith('sora-2-text-to-video') ||
-      id.startsWith('sora-2-image-to-video') ||
-      id.startsWith('sora-2-pro-'),
-  },
-  {
     baseCardId: 'veo3-1',
     mediaKind: 'video',
     strategy: 'composed',
@@ -91,6 +95,15 @@ export const KUBEEZ_MODEL_FAMILY_REGISTRY: KubeezModelFamilyRegistryEntry[] = [
     displayName: 'Kling 2.5 Image-to-Video',
     matchModelId: (id) =>
       id === 'kling-2-5-image-to-video-pro' || id === 'kling-2-5-image-to-video-pro-10s',
+  },
+  {
+    // P-Video (Pruna AI) — single model_id; aspect + duration are body fields, not encoded.
+    // Accepts an image reference + optional audio reference for lip-sync/scene control.
+    baseCardId: 'p-video',
+    mediaKind: 'video',
+    strategy: 'toggle',
+    displayName: 'P-Video',
+    matchModelId: (id) => id === 'p-video',
   },
   {
     baseCardId: 'grok-video',
@@ -196,24 +209,32 @@ export type KubeezKling30Settings = {
   motionResolution: KubeezKling26MotionResolution;
 };
 
-export type KubeezSora2Tier = 'base' | 'pro';
-export type KubeezSora2Mode = 'text-to-video' | 'image-to-video' | 'storyboard';
-export type KubeezSora2Duration = '10s' | '15s' | '25s';
-export type KubeezSora2ProQuality = 'hd' | 'standard';
-
-export type KubeezSora2Settings = {
-  tier: KubeezSora2Tier;
-  mode: KubeezSora2Mode;
-  duration: KubeezSora2Duration;
-  /** Pro text/image-to-video only */
-  proQuality: KubeezSora2ProQuality;
-};
-
 export type KubeezZImageTier = 'standard' | 'hd';
 
 export type KubeezGpt15ImageQuality = 'medium' | 'high';
 
 export type KubeezKling25Clip = '5s' | '10s';
+
+/**
+ * Seedance 2: tier (Fast vs Standard) + resolution + optional video reference.
+ * The model_id encodes the first three:
+ *   - `seedance-2-{480p,720p,1080p}` (Standard) or `seedance-2-fast-{480p,720p}` (Fast)
+ *   - `-video-ref` suffix for image-to-video mode
+ * Duration is a body field. **Audio is a body field too** — Kubeez OpenAPI defines a
+ * `sound: boolean` parameter for models whose `video_audio` capability is
+ * `toggle_via_sound_param` (Seedance 2 falls in this bucket). Defaults on.
+ */
+export type KubeezSeedance2Tier = 'fast' | 'standard';
+export type KubeezSeedance2Resolution = '480p' | '720p' | '1080p';
+
+export type KubeezSeedance2Settings = {
+  tier: KubeezSeedance2Tier;
+  resolution: KubeezSeedance2Resolution;
+  /** When true, append `-video-ref` (image-to-video). Required for ref-based generation. */
+  videoRef: boolean;
+  /** Sent as POST body `sound: boolean` (NOT a model_id suffix). Default: true. */
+  withAudio: boolean;
+};
 
 export type KubeezVeo31Tier = 'fast' | 'lite' | 'quality';
 export type KubeezVeo31Mode = 'text-to-video' | 'first-and-last-frames' | 'reference-to-video';
@@ -250,7 +271,7 @@ export type KubeezModelSettings = {
   grokVideoMode?: KubeezGrokVideoMode;
   kling26MotionResolution?: KubeezKling26MotionResolution;
   kling30?: KubeezKling30Settings;
-  sora2?: KubeezSora2Settings;
+  seedance2?: KubeezSeedance2Settings;
   zImageTier?: KubeezZImageTier;
   gpt15ImageQuality?: KubeezGpt15ImageQuality;
   kling25Clip?: KubeezKling25Clip;
@@ -312,70 +333,33 @@ export function mapKling30ToModelId(s: KubeezKling30Settings): string {
     : 'kling-3-0-motion-control-1080p';
 }
 
-export function parseSora2Variant(modelId: string): KubeezSora2Settings | null {
-  switch (modelId) {
-    case 'sora-2-text-to-video-10s':
-      return { tier: 'base', mode: 'text-to-video', duration: '10s', proQuality: 'standard' };
-    case 'sora-2-text-to-video-15s':
-      return { tier: 'base', mode: 'text-to-video', duration: '15s', proQuality: 'standard' };
-    case 'sora-2-image-to-video-10s':
-      return { tier: 'base', mode: 'image-to-video', duration: '10s', proQuality: 'standard' };
-    case 'sora-2-image-to-video-15s':
-      return { tier: 'base', mode: 'image-to-video', duration: '15s', proQuality: 'standard' };
-    case 'sora-2-pro-storyboard-10s':
-      return { tier: 'pro', mode: 'storyboard', duration: '10s', proQuality: 'standard' };
-    case 'sora-2-pro-storyboard-15s':
-      return { tier: 'pro', mode: 'storyboard', duration: '15s', proQuality: 'standard' };
-    case 'sora-2-pro-storyboard-25s':
-      return { tier: 'pro', mode: 'storyboard', duration: '25s', proQuality: 'standard' };
-    case 'sora-2-pro-text-to-video-10s-hd':
-      return { tier: 'pro', mode: 'text-to-video', duration: '10s', proQuality: 'hd' };
-    case 'sora-2-pro-text-to-video-10s-standard':
-      return { tier: 'pro', mode: 'text-to-video', duration: '10s', proQuality: 'standard' };
-    case 'sora-2-pro-text-to-video-15s-hd':
-      return { tier: 'pro', mode: 'text-to-video', duration: '15s', proQuality: 'hd' };
-    case 'sora-2-pro-text-to-video-15s-standard':
-      return { tier: 'pro', mode: 'text-to-video', duration: '15s', proQuality: 'standard' };
-    case 'sora-2-pro-image-to-video-10s-hd':
-      return { tier: 'pro', mode: 'image-to-video', duration: '10s', proQuality: 'hd' };
-    case 'sora-2-pro-image-to-video-10s-standard':
-      return { tier: 'pro', mode: 'image-to-video', duration: '10s', proQuality: 'standard' };
-    case 'sora-2-pro-image-to-video-15s-hd':
-      return { tier: 'pro', mode: 'image-to-video', duration: '15s', proQuality: 'hd' };
-    case 'sora-2-pro-image-to-video-15s-standard':
-      return { tier: 'pro', mode: 'image-to-video', duration: '15s', proQuality: 'standard' };
-    default:
-      return null;
-  }
+const SEEDANCE2_VARIANT_RE = /^seedance-2(-fast)?(?:-(480p|720p|1080p))?(-video-ref)?$/;
+
+export function parseSeedance2Variant(modelId: string): KubeezSeedance2Settings | null {
+  const m = SEEDANCE2_VARIANT_RE.exec(modelId);
+  if (!m) return null;
+  const tier: KubeezSeedance2Tier = m[1] ? 'fast' : 'standard';
+  // No resolution suffix → server default (720p is the most common middle tier).
+  const resolution: KubeezSeedance2Resolution = (m[2] as KubeezSeedance2Resolution) ?? '720p';
+  // Fast tier doesn't ship 1080p — clamp on read so we always return a valid combination.
+  const safeResolution =
+    tier === 'fast' && resolution === '1080p' ? '720p' : resolution;
+  // Audio is not encoded in the model_id (it's a body `sound` parameter). Default to true
+  // since Kubeez Seedance 2 generates audio when `sound` is unset/true on supported variants.
+  return {
+    tier,
+    resolution: safeResolution,
+    videoRef: Boolean(m[3]),
+    withAudio: true,
+  };
 }
 
-export function mapSora2ToModelId(s: KubeezSora2Settings): string {
-  if (s.tier === 'base') {
-    if (s.mode === 'image-to-video') {
-      return s.duration === '15s' ? 'sora-2-image-to-video-15s' : 'sora-2-image-to-video-10s';
-    }
-    if (s.mode === 'text-to-video') {
-      return s.duration === '15s' ? 'sora-2-text-to-video-15s' : 'sora-2-text-to-video-10s';
-    }
-    return 'sora-2-text-to-video-10s';
-  }
-  if (s.mode === 'storyboard') {
-    if (s.duration === '25s') return 'sora-2-pro-storyboard-25s';
-    if (s.duration === '15s') return 'sora-2-pro-storyboard-15s';
-    return 'sora-2-pro-storyboard-10s';
-  }
-  const q = s.proQuality === 'hd' ? 'hd' : 'standard';
-  const dur15 = s.duration === '15s';
-  if (s.mode === 'text-to-video') {
-    if (dur15) {
-      return q === 'hd' ? 'sora-2-pro-text-to-video-15s-hd' : 'sora-2-pro-text-to-video-15s-standard';
-    }
-    return q === 'hd' ? 'sora-2-pro-text-to-video-10s-hd' : 'sora-2-pro-text-to-video-10s-standard';
-  }
-  if (dur15) {
-    return q === 'hd' ? 'sora-2-pro-image-to-video-15s-hd' : 'sora-2-pro-image-to-video-15s-standard';
-  }
-  return q === 'hd' ? 'sora-2-pro-image-to-video-10s-hd' : 'sora-2-pro-image-to-video-10s-standard';
+export function mapSeedance2ToModelId(s: KubeezSeedance2Settings): string {
+  const tier = s.tier === 'fast' ? '-fast' : '';
+  // Fast tier doesn't expose 1080p — fall back to 720p so the picked id always exists.
+  const resolution = s.tier === 'fast' && s.resolution === '1080p' ? '720p' : s.resolution;
+  const ref = s.videoRef ? '-video-ref' : '';
+  return `seedance-2${tier}-${resolution}${ref}`;
 }
 
 const NANO2_RESOLUTION_IDS: Record<KubeezImageResolutionTier, string> = {
@@ -426,14 +410,9 @@ export function defaultModelSettings(
   if (entry.baseCardId === 'kling-3-0') {
     return { kling30: { line: 'std', motionResolution: '720p' } };
   }
-  if (entry.baseCardId === 'sora-2') {
+  if (entry.baseCardId === 'seedance-2-fast') {
     return {
-      sora2: {
-        tier: 'base',
-        mode: 'text-to-video',
-        duration: '10s',
-        proQuality: 'standard',
-      },
+      seedance2: { tier: 'fast', resolution: '720p', videoRef: false, withAudio: true },
     };
   }
   if (entry.baseCardId === 'veo3-1') {

@@ -3211,6 +3211,7 @@ export const TimelineItem = memo(function TimelineItem({ item, timelineDuration 
         <div
           ref={transformRef}
           data-item-id={item.id}
+          data-item-type={item.type}
           className={cn(
             "absolute inset-y-px rounded overflow-visible group/timeline-item",
             itemColorClasses,

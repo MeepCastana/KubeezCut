@@ -528,11 +528,11 @@ export const Timeline = memo(function Timeline({ duration }: TimelineProps) {
         useTimelineStore.getState().setInPoint(currentFrame);
       }
 
-      // 'Shift+I' key - Set in-point at skimmer playhead when available
+      // 'Shift+I' key - Set in-point at skimmer (ghost) playhead when hovering
       else if (key === 'i' && !e.metaKey && !e.ctrlKey && e.shiftKey && !e.altKey) {
         e.preventDefault();
-        const { previewFrame, currentFrame } = usePlaybackStore.getState();
-        useTimelineStore.getState().setInPoint(previewFrame ?? currentFrame);
+        const { hoverFrame, currentFrame } = usePlaybackStore.getState();
+        useTimelineStore.getState().setInPoint(hoverFrame ?? currentFrame);
       }
 
       // 'O' key - Set out-point at main playhead
@@ -542,11 +542,11 @@ export const Timeline = memo(function Timeline({ duration }: TimelineProps) {
         useTimelineStore.getState().setOutPoint(currentFrame);
       }
 
-      // 'Shift+O' key - Set out-point at skimmer playhead when available
+      // 'Shift+O' key - Set out-point at skimmer (ghost) playhead when hovering
       else if (key === 'o' && !e.metaKey && !e.ctrlKey && e.shiftKey && !e.altKey) {
         e.preventDefault();
-        const { previewFrame, currentFrame } = usePlaybackStore.getState();
-        useTimelineStore.getState().setOutPoint(previewFrame ?? currentFrame);
+        const { hoverFrame, currentFrame } = usePlaybackStore.getState();
+        useTimelineStore.getState().setOutPoint(hoverFrame ?? currentFrame);
       }
     };
 

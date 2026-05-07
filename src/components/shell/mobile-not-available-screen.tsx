@@ -26,7 +26,7 @@ export function MobileNotAvailableScreen() {
 
         <div className="space-y-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#4E50BE]">
-            Wide screen only
+            Desktop today · Mobile coming soon
           </p>
           <h1
             id="kubeezcut-mobile-gate-title"
@@ -41,7 +41,8 @@ export function MobileNotAvailableScreen() {
             The editor is built for timelines and panels — it shines on a{' '}
             <span className="font-medium text-foreground">desktop-sized</span> window. Aim for at least{' '}
             <span className="whitespace-nowrap font-semibold text-foreground">1000px</span> width, then
-            dive back in.
+            dive back in. We&apos;re actively working to bring the full editor to mobile —{' '}
+            <span className="font-medium text-foreground">stay tuned</span>.
           </p>
         </div>
 
@@ -59,7 +60,7 @@ export function MobileNotAvailableScreen() {
             <ExternalLink className="h-4 w-4 shrink-0 opacity-95" aria-hidden />
           </a>
           <p className="mt-2.5 text-center text-xs text-muted-foreground">
-            Full KubeezCut editor still needs a wide window above.
+            Full KubeezCut editor still needs a wide window. A mobile build is on the way.
           </p>
         </div>
       </div>

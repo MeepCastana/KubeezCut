@@ -174,6 +174,19 @@ export async function getDB(): Promise<VideoEditorDBInstance> {
             });
           }
         }
+
+        // v11: Enhanced audio store for persisted RNNoise / DFN3 outputs.
+        if (oldVersion < 11) {
+          if (!db.objectStoreNames.contains('enhancedAudio')) {
+            const enhancedAudioStore = db.createObjectStore('enhancedAudio', {
+              keyPath: 'id',
+            });
+            enhancedAudioStore.createIndex('mediaId', 'mediaId', { unique: false });
+            enhancedAudioStore.createIndex('createdAt', 'createdAt', {
+              unique: false,
+            });
+          }
+        }
       },
       blocked() {
         logger.warn(

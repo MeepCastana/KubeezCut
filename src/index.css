@@ -98,6 +98,25 @@
     color-scheme: dark;
   }
 
+  /* Tailwind v4's preflight removes `cursor: pointer` from buttons (it
+   * defers to the browser default). Restore it for everything that's
+   * obviously interactive — buttons, role=button, and Radix triggers —
+   * unless they're disabled. Anchors already get pointer from the
+   * browser default. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='menuitem']:not([aria-disabled='true']),
+  [role='option']:not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+
   /* Monospace for technical data */
   code,
   pre,

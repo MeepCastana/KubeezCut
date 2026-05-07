@@ -203,6 +203,24 @@ export interface DecodedPreviewAudioBin {
 
 export type DecodedPreviewAudio = DecodedPreviewAudioMeta | DecodedPreviewAudioBin;
 
+/**
+ * Persisted output of the audio-enhance pipeline (RNNoise / DFN3 / chain).
+ *
+ * One record per `(mediaId, settingsHash)` — different bake-time settings
+ * produce different records. Channels are quantized to Int16 to halve
+ * storage vs. Float32; quality difference is inaudible for voice work
+ * compared to the noise floor we're already attacking.
+ */
+export interface EnhancedAudioRecord {
+  id: string; // `${mediaId}:${settingsHash}`
+  mediaId: string;
+  settingsHash: string;
+  sampleRate: number;
+  numberOfFrames: number;
+  channels: ArrayBuffer[]; // Int16 per channel
+  createdAt: number;
+}
+
 // GIF frame data for pre-extracted animation frames
 export interface GifFrameData {
   id: string; // Same as mediaId

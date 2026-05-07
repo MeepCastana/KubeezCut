@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as AuthPopupCallbackRouteImport } from './routes/auth-popup-callback'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
@@ -21,6 +22,11 @@ import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthPopupCallbackRoute = AuthPopupCallbackRouteImport.update({
+  id: '/auth-popup-callback',
+  path: '/auth-popup-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -63,6 +69,7 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth-popup-callback': typeof AuthPopupCallbackRoute
   '/settings': typeof SettingsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/editor/$projectId': typeof EditorProjectIdRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth-popup-callback': typeof AuthPopupCallbackRoute
   '/settings': typeof SettingsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/editor/$projectId': typeof EditorProjectIdRoute
@@ -84,6 +92,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth-popup-callback': typeof AuthPopupCallbackRoute
   '/settings': typeof SettingsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/editor/$projectId': typeof EditorProjectIdRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth-popup-callback'
     | '/settings'
     | '/blog/$slug'
     | '/editor/$projectId'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth-popup-callback'
     | '/settings'
     | '/blog/$slug'
     | '/editor/$projectId'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth-popup-callback'
     | '/settings'
     | '/blog/$slug'
     | '/editor/$projectId'
@@ -127,6 +139,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthPopupCallbackRoute: typeof AuthPopupCallbackRoute
   SettingsRoute: typeof SettingsRoute
   BlogSlugRoute: typeof BlogSlugRoute
   EditorProjectIdRoute: typeof EditorProjectIdRoute
@@ -143,6 +156,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth-popup-callback': {
+      id: '/auth-popup-callback'
+      path: '/auth-popup-callback'
+      fullPath: '/auth-popup-callback'
+      preLoaderRoute: typeof AuthPopupCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -199,6 +219,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthPopupCallbackRoute: AuthPopupCallbackRoute,
   SettingsRoute: SettingsRoute,
   BlogSlugRoute: BlogSlugRoute,
   EditorProjectIdRoute: EditorProjectIdRoute,

@@ -10,6 +10,7 @@ import type {
   GifFrameData,
   DecodedPreviewAudio,
   MediaTranscript,
+  EnhancedAudioRecord,
 } from '@/types/storage';
 
 /**
@@ -102,9 +103,17 @@ export interface VideoEditorDB extends DBSchema {
       createdAt: number;
     };
   };
+  enhancedAudio: {
+    key: string;
+    value: EnhancedAudioRecord;
+    indexes: {
+      mediaId: string;
+      createdAt: number;
+    };
+  };
 }
 
 export const DB_NAME = 'video-editor-db';
-export const DB_VERSION = 10;
+export const DB_VERSION = 11;
 
 export type VideoEditorDBInstance = IDBPDatabase<VideoEditorDB>;

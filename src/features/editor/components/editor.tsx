@@ -19,10 +19,7 @@ import { Timeline, BentoLayoutDialog } from '@/features/editor/deps/timeline-ui'
 import { ClearKeyframesDialog } from './clear-keyframes-dialog';
 import { TtsGenerateDialog } from './tts-generate-dialog';
 import { KubeezGenerateImageDialog } from '@/components/kubeez/kubeez-generate-image-dialog';
-import {
-  consumeKubeezGenerateReopenAfterSettings,
-  useKubeezGenerateDialogStore,
-} from '@/shared/state/kubeez-generate-dialog';
+import { useKubeezGenerateDialogStore } from '@/shared/state/kubeez-generate-dialog';
 import { toast } from 'sonner';
 import { useEditorHotkeys } from '@/features/editor/hooks/use-editor-hotkeys';
 import { useAutoSave } from '../hooks/use-auto-save';
@@ -195,17 +192,10 @@ export const LoadedEditor = memo(function LoadedEditor({
   const maxItemEndFrame = useItemsStore((s) => s.maxItemEndFrame);
   const timelineDurationSeconds = Math.max(maxItemEndFrame / Math.max(fps, 1), 10);
   const kubeezGenerateOpen = useKubeezGenerateDialogStore((s) => s.isOpen);
-  const openKubeezGenerate = useKubeezGenerateDialogStore((s) => s.open);
   const closeKubeezGenerate = useKubeezGenerateDialogStore((s) => s.close);
   const hasRefreshedMigrationStateRef = useRef(false);
   const toolsPanelRef = useRef<ImperativePanelHandle>(null);
   const propertiesPanelRef = useRef<ImperativePanelHandle>(null);
-
-  useLayoutEffect(() => {
-    if (consumeKubeezGenerateReopenAfterSettings(projectId)) {
-      openKubeezGenerate();
-    }
-  }, [projectId, openKubeezGenerate]);
 
   // Keep shell layout in sync: closing a sidebar collapses the ResizablePanel to 0,
   // not only hide inner content (otherwise an empty bordered column remains).

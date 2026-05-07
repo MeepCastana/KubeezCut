@@ -36,6 +36,19 @@ function getZoneItemType(zone: 'video' | 'audio'): TimelineItem['type'] {
   return zone === 'audio' ? 'audio' : 'video';
 }
 
+/**
+ * Returns true when none of the given track IDs have any item rect in `itemsToCheck`.
+ * Used to "snap to frame 0" when a user drops the very first clip onto an empty lane —
+ * for the new-lane zone, freshly-spawned tracks are empty by construction, so the first entry
+ * always lands at 0 and subsequent entries chain via `currentPosition`.
+ */
+function areAllTracksEmpty(
+  trackIds: string[],
+  itemsToCheck: CollisionRect[]
+): boolean {
+  return !itemsToCheck.some((rect) => trackIds.includes(rect.trackId));
+}
+
 function resolveSyncedDropFrame(
   proposedFrom: number,
   durationInFrames: number,
@@ -161,10 +174,14 @@ export function planNewTrackZonePlacements<T>(params: {
           continue;
         }
 
+        const linkedTargetIds = [primaryTrackId, companionTrackId];
+        const proposedLinkedFrom = areAllTracksEmpty(linkedTargetIds, itemsToCheck)
+          ? 0
+          : currentPosition;
         const syncFrom = resolveSyncedDropFrame(
-          currentPosition,
+          proposedLinkedFrom,
           entry.durationInFrames,
-          [primaryTrackId, companionTrackId],
+          linkedTargetIds,
           itemsToCheck,
         );
 
@@ -187,8 +204,11 @@ export function planNewTrackZonePlacements<T>(params: {
           },
         ];
       } else {
+        const proposedFrom = areAllTracksEmpty([primaryTrackId], itemsToCheck)
+          ? 0
+          : currentPosition;
         const finalPosition = findNearestAvailableSpace(
-          currentPosition,
+          proposedFrom,
           entry.durationInFrames,
           primaryTrackId,
           itemsToCheck,
@@ -215,8 +235,11 @@ export function planNewTrackZonePlacements<T>(params: {
         continue;
       }
 
+      const proposedFrom = areAllTracksEmpty([audioTrackId], itemsToCheck)
+        ? 0
+        : currentPosition;
       const finalPosition = findNearestAvailableSpace(
-        currentPosition,
+        proposedFrom,
         entry.durationInFrames,
         audioTrackId,
         itemsToCheck,

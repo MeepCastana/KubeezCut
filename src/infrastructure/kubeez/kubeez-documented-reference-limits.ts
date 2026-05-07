@@ -91,11 +91,6 @@ const LEGACY_REST_PREFIX_RULES: { prefix: string; maxFiles: number }[] = [
   { prefix: 'kling-2-6-image-to-video-', maxFiles: 1 },
   { prefix: 'kling-2-6-text-to-video-', maxFiles: 0 },
   { prefix: 'v1-pro-fast-i2v-', maxFiles: 1 },
-  { prefix: 'sora-2-pro-storyboard-', maxFiles: 1 },
-  { prefix: 'sora-2-pro-image-to-video-', maxFiles: 1 },
-  { prefix: 'sora-2-pro-text-to-video-', maxFiles: 0 },
-  { prefix: 'sora-2-image-to-video-', maxFiles: 1 },
-  { prefix: 'sora-2-text-to-video-', maxFiles: 0 },
   { prefix: 'wan-2-5-image-to-video-', maxFiles: 1 },
   { prefix: 'wan-2-5-text-to-video-', maxFiles: 0 },
   { prefix: 'wan-2-5', maxFiles: 0 },
@@ -119,7 +114,7 @@ export function documentedMaxReferenceFilesForModelId(modelId: string): number |
 }
 
 /**
- * Generate dialog: uses UI `settings` so Veo / Kling / Sora / Wan / Grok modes match KubeezWebsite.
+ * Generate dialog: uses UI `settings` so Veo / Kling / Wan / Grok modes match KubeezWebsite.
  */
 export function effectiveMaxReferenceFilesForGenerateDialog(
   model: { model_id: string; maxReferenceFiles?: number } | null | undefined,

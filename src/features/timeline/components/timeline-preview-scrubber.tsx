@@ -33,17 +33,20 @@ export function TimelinePreviewScrubber({ inRuler = false, maxFrame }: TimelineP
     maxFrameRef.current = maxFrame;
   }, [frameToPixels, fps, maxFrame]);
 
-  // Subscribe to previewFrame and update DOM directly (zero re-renders)
+  // Subscribe to hoverFrame and update DOM directly (zero re-renders).
+  // hoverFrame tracks the cursor anywhere on the timeline, independent of the
+  // preview canvas frame — the ghost playhead can follow the mouse without
+  // scrubbing the preview.
   useEffect(() => {
-    const updatePosition = (previewFrame: number | null) => {
+    const updatePosition = (hoverFrame: number | null) => {
       if (!scrubberRef.current) return;
 
-      if (previewFrame === null) {
+      if (hoverFrame === null) {
         scrubberRef.current.style.display = 'none';
         return;
       }
 
-      let clampedFrame = Math.max(0, previewFrame);
+      let clampedFrame = Math.max(0, hoverFrame);
       if (maxFrameRef.current !== undefined) {
         clampedFrame = Math.min(clampedFrame, maxFrameRef.current);
       }
@@ -59,19 +62,19 @@ export function TimelinePreviewScrubber({ inRuler = false, maxFrame }: TimelineP
     };
 
     // Initial state
-    updatePosition(usePlaybackStore.getState().previewFrame);
+    updatePosition(usePlaybackStore.getState().hoverFrame);
 
     return usePlaybackStore.subscribe((state) => {
-      updatePosition(state.previewFrame);
+      updatePosition(state.hoverFrame);
     });
   }, []);
 
   // Reposition on zoom changes
   useLayoutEffect(() => {
     if (!scrubberRef.current) return;
-    const previewFrame = usePlaybackStore.getState().previewFrame;
-    if (previewFrame === null) return;
-    let clampedFrame = Math.max(0, previewFrame);
+    const hoverFrame = usePlaybackStore.getState().hoverFrame;
+    if (hoverFrame === null) return;
+    let clampedFrame = Math.max(0, hoverFrame);
     if (maxFrame !== undefined) {
       clampedFrame = Math.min(clampedFrame, maxFrame);
     }
@@ -121,7 +124,10 @@ export function TimelinePreviewScrubber({ inRuler = false, maxFrame }: TimelineP
         display: 'none', // Hidden by default, shown via ref subscription
         width: '1px',
         pointerEvents: 'none',
-        zIndex: 20,
+        // Above the playhead (z=9999) so the razor/rate/trim cursor stays
+        // visible when it snaps onto the playhead — otherwise the playhead
+        // hides it and the user can't see where the cut will land.
+        zIndex: 10000,
       }}
     >
       {/* Ghost line */}

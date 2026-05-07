@@ -21,11 +21,10 @@ import pVideo from '@/assets/kubeez-model-cards/p-video.webp';
 import qwenimage2 from '@/assets/kubeez-model-cards/qwenimage2.webp';
 import seedance from '@/assets/kubeez-model-cards/seedance.webp';
 import seedance15 from '@/assets/kubeez-model-cards/seedance1.5.webp';
+import seedance2 from '@/assets/kubeez-model-cards/seedance2.webp';
 import seedreamV45 from '@/assets/kubeez-model-cards/seedreamv4-5.webp';
 import seedreamV4 from '@/assets/kubeez-model-cards/seedreamv4.webp';
 import seedreamV5Lite from '@/assets/kubeez-model-cards/seedreamv5-lite.webp';
-import sora2 from '@/assets/kubeez-model-cards/sora2.webp';
-import sora2Storyboard from '@/assets/kubeez-model-cards/sora2storyboard.webp';
 import veo31 from '@/assets/kubeez-model-cards/veo3.1.webp';
 import wan from '@/assets/kubeez-model-cards/wan.webp';
 import zimage from '@/assets/kubeez-model-cards/zimage.webp';
@@ -34,11 +33,11 @@ import { findRegistryEntryForModelId } from './model-family-registry';
 
 const BY_BASE_CARD_ID: Record<string, string> = {
   'seedance-1-5-pro': seedance15,
+  'seedance-2-fast': seedance2,
   'v1-pro-fast-i2v': seedance,
   'kling-2-6': kling26,
   'kling-2-6-motion': kling26,
   'kling-3-0': kling30,
-  'sora-2': sora2,
   'veo3-1': veo31,
   'wan-2-5': wan,
   'kling-2-5-i2v': kling25,
@@ -50,19 +49,12 @@ const BY_BASE_CARD_ID: Record<string, string> = {
   'gpt-1.5-image': gpt15,
 };
 
-function imageForRegistryBase(baseCardId: string, modelId: string): string | undefined {
-  if (baseCardId === 'sora-2' && modelId.includes('storyboard')) {
-    return sora2Storyboard;
-  }
+function imageForRegistryBase(baseCardId: string): string | undefined {
   return BY_BASE_CARD_ID[baseCardId];
 }
 
 function resolveByPrefixHeuristics(id: string): string | undefined {
   const lower = id.toLowerCase();
-
-  if (lower.includes('storyboard') && lower.startsWith('sora-2')) {
-    return sora2Storyboard;
-  }
 
   /** ByteDance "5 Lite" ids use `5-lite-*` (no `seedream-` prefix); same hero as Seedream V5 Lite on kubeez.com */
   if (lower.startsWith('5-lite-')) {
@@ -107,6 +99,7 @@ function resolveByPrefixHeuristics(id: string): string | undefined {
   }
 
   if (lower.startsWith('seedance-1-5')) return seedance15;
+  if (lower.startsWith('seedance-2')) return seedance2;
   if (lower.startsWith('seedance')) return seedance;
   if (lower.startsWith('v1-pro-fast')) return seedance;
 
@@ -115,7 +108,6 @@ function resolveByPrefixHeuristics(id: string): string | undefined {
   if (lower.startsWith('kling-2-6')) return kling26;
   if (lower.startsWith('kling-2-5')) return kling25;
 
-  if (lower.startsWith('sora-2')) return sora2;
   if (lower.startsWith('veo3-1')) return veo31;
   if (lower.startsWith('wan-2-5') || lower === 'wan-2-5') return wan;
 
@@ -136,13 +128,13 @@ export function resolveLocalKubeezModelCardImage(modelId: string, baseCardId?: s
   if (!id) return undefined;
 
   if (baseCardId) {
-    const fromBase = imageForRegistryBase(baseCardId, id);
+    const fromBase = imageForRegistryBase(baseCardId);
     if (fromBase) return fromBase;
   }
 
   const entry = findRegistryEntryForModelId(id);
   if (entry) {
-    const fromReg = imageForRegistryBase(entry.baseCardId, id);
+    const fromReg = imageForRegistryBase(entry.baseCardId);
     if (fromReg) return fromReg;
   }
 

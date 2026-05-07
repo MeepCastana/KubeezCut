@@ -34,8 +34,9 @@ describe('planNewTrackZonePlacements', () => {
     const audioTrack = result.tracks.find((track) => track.id === placements[1]?.trackId);
 
     expect(placements).toHaveLength(2);
-    expect(placements[0]).toMatchObject({ mediaType: 'video', from: 36, durationInFrames: 90 });
-    expect(placements[1]).toMatchObject({ mediaType: 'audio', from: 36, durationInFrames: 90 });
+    // Freshly-spawned lanes are empty by construction → first clip snaps to 0 regardless of cursor.
+    expect(placements[0]).toMatchObject({ mediaType: 'video', from: 0, durationInFrames: 90 });
+    expect(placements[1]).toMatchObject({ mediaType: 'audio', from: 0, durationInFrames: 90 });
     expect(videoTrack).toMatchObject({ name: 'V2', kind: 'video' });
     expect(audioTrack).toMatchObject({ name: 'A1', kind: 'audio' });
   });
@@ -63,8 +64,8 @@ describe('planNewTrackZonePlacements', () => {
     expect(result.tracks.filter((track) => track.kind === 'video')).toHaveLength(2);
     expect(result.tracks.filter((track) => track.kind === 'audio')).toHaveLength(1);
     expect(result.plannedItems[0]!.placements).toEqual([
-      expect.objectContaining({ mediaType: 'video', from: 18, durationInFrames: 75 }),
-      expect.objectContaining({ mediaType: 'audio', from: 18, durationInFrames: 75 }),
+      expect.objectContaining({ mediaType: 'video', from: 0, durationInFrames: 75 }),
+      expect.objectContaining({ mediaType: 'audio', from: 0, durationInFrames: 75 }),
     ]);
   });
 
@@ -104,7 +105,7 @@ describe('planNewTrackZonePlacements', () => {
     expect(result.plannedItems[0]!.placements[0]).toMatchObject({
       mediaType: 'image',
       trackId: videoTrack!.id,
-      from: 6,
+      from: 0,
       durationInFrames: 40,
     });
   });
@@ -130,7 +131,7 @@ describe('planNewTrackZonePlacements', () => {
     expect(result.plannedItems).toHaveLength(1);
     expect(result.tracks.filter((track) => track.kind === 'audio')).toHaveLength(1);
     expect(result.plannedItems[0]!.placements).toEqual([
-      expect.objectContaining({ mediaType: 'audio', from: 12, durationInFrames: 45 }),
+      expect.objectContaining({ mediaType: 'audio', from: 0, durationInFrames: 45 }),
     ]);
 
     const audioTrack = result.tracks.find((track) => track.id === result.plannedItems[0]!.placements[0]!.trackId);
@@ -163,8 +164,8 @@ describe('buildGhostPreviewsFromNewTrackZonePlan', () => {
     });
 
     expect(ghosts).toEqual([
-      expect.objectContaining({ type: 'video', targetZone: 'video', left: 24, width: 90 }),
-      expect.objectContaining({ type: 'audio', targetZone: 'audio', left: 24, width: 90 }),
+      expect.objectContaining({ type: 'video', targetZone: 'video', left: 0, width: 90 }),
+      expect.objectContaining({ type: 'audio', targetZone: 'audio', left: 0, width: 90 }),
     ]);
   });
 });

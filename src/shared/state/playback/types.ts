@@ -21,10 +21,21 @@ export interface PlaybackState {
   volume: number;
   muted: boolean;
   zoom: number;
-  /** Frame to preview on hover (null when not hovering) */
+  /**
+   * Frame the preview canvas should render. Set ONLY when the cursor is over a
+   * video / image clip rectangle. Null elsewhere (preview falls back to currentFrame).
+   */
   previewFrame: number | null;
   /** Internal epoch for last previewFrame mutation (monotonic per store session) */
   previewFrameEpoch: number;
+  /**
+   * Frame the ghost-playhead UI should render at. Tracks the cursor anywhere on
+   * the timeline regardless of whether it's over a clip. Independent of `previewFrame`
+   * so the ghost playhead can follow the mouse without disturbing the preview canvas.
+   */
+  hoverFrame: number | null;
+  /** Item under the cursor (any clip type). Null when not over any clip. */
+  hoverItemId: string | null;
   /** Internal shared mutation counter used to order frame updates */
   frameUpdateEpoch: number;
   /** Item ID under the cursor when previewing (null when not over an item) */
@@ -54,6 +65,8 @@ export interface PlaybackActions {
   toggleMute: () => void;
   setZoom: (zoom: number) => void;
   setPreviewFrame: (frame: number | null, itemId?: string | null) => void;
+  /** Update the ghost-playhead position + hovered clip (decoupled from the preview canvas frame). */
+  setHoverFrame: (frame: number | null, itemId?: string | null) => void;
   setDisplayedFrame: (frame: number | null) => void;
   /** Register a frame capture function (called by VideoPreview on mount) */
   setCaptureFrame: (fn: ((options?: CaptureOptions) => Promise<string | null>) | null) => void;

@@ -31,17 +31,37 @@ describe('getVideoAspectUi', () => {
     expect(ui?.options.map((o) => o.value)).toContain('auto');
   });
 
-  it('returns Sora ratios without Auto', () => {
-    const ui = getVideoAspectUi('sora-2-text-to-video-10s');
-    expect(ui?.options.map((o) => o.value)).toEqual(['16:9', '9:16']);
-  });
-
   it('excludes Kling 3 motion variants', () => {
     expect(getVideoAspectUi('kling-3-0-motion-control-720p')).toBeNull();
   });
 
   it('excludes Kling 2.6 motion family', () => {
     expect(getVideoAspectUi('kling-2-6-motion-control-720p')).toBeNull();
+  });
+
+  it('returns Seedance 2 full aspect options (incl. 21:9, 2:3, 3:2, adaptive) for every variant', () => {
+    for (const id of [
+      'seedance-2-480p',
+      'seedance-2-720p',
+      'seedance-2-fast-480p',
+      'seedance-2-fast-720p',
+      'seedance-2-720p-video-ref',
+      'seedance-2-fast-720p-video-ref',
+    ]) {
+      const ui = getVideoAspectUi(id);
+      expect(ui, id).not.toBeNull();
+      expect(ui?.options.map((o) => o.value)).toEqual([
+        '16:9', '9:16', '1:1', '4:3', '3:4', '21:9', '2:3', '3:2', 'adaptive',
+      ]);
+      expect(ui?.defaultValue).toBe('16:9');
+    }
+  });
+
+  it('returns P-Video aspect options', () => {
+    const ui = getVideoAspectUi('p-video');
+    expect(ui).not.toBeNull();
+    expect(ui?.options.map((o) => o.value)).toEqual(['16:9', '9:16', '1:1', '4:3', '3:4']);
+    expect(ui?.defaultValue).toBe('16:9');
   });
 });
 

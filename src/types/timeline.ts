@@ -38,6 +38,8 @@ type BaseTimelineItem = {
   fadeOut?: number; // Video fade out duration in seconds (default: 0)
   // Visual effects (GPU shader effects)
   effects?: ItemEffect[];
+  // AI voice enhancement (offline-baked denoise + processing chain)
+  audioEnhance?: AudioEnhanceSettings;
   // Blend mode for layer compositing (default: 'normal')
   blendMode?: BlendMode;
   // Corner pin transform (perspective warp)
@@ -53,6 +55,29 @@ export interface GeneratedCaptionSource {
   type: 'transcript';
   clipId: string;
   mediaId: string;
+}
+
+/**
+ * Per-item AI audio enhancement settings.
+ *
+ * Bake-time fields (denoise, highPass, hum, deEss, compress, normalize) determine
+ * the cached enhanced AudioBuffer; changing any of them re-bakes. Play-time fields
+ * (intensity) are applied during playback as a dry/wet mix and never trigger re-bake.
+ */
+export interface AudioEnhanceSettings {
+  enabled: boolean;
+  // Play-time dry/wet mix between raw and enhanced (0 = raw, 1 = fully enhanced)
+  intensity: number;
+  // Bake-time chain
+  model?: 'rnnoise' | 'dfn3'; // AI denoise model (default: 'rnnoise'; 'dfn3' is groundwork, not yet wired)
+  denoise: boolean;       // Run AI denoise stage at all (default: true)
+  aggressive?: boolean;   // Double-pass denoise + spectral-subtraction dereverb (default: false)
+  highPass?: boolean;     // 80 Hz HPF for rumble (default: true)
+  hum?: 'off' | '50' | '60'; // Mains-hum notch (default: 'off')
+  deEss?: boolean;        // 6–8 kHz dynamic de-esser (default: false)
+  voiceEq?: boolean;      // Mud cut + presence boost for voice (default: false)
+  compress?: boolean;     // Voice-tuned compressor (default: true)
+  normalize?: boolean;    // Peak-normalize to -1 dBFS (default: true)
 }
 
 // Discriminated union types for different item types

@@ -31,12 +31,6 @@ export function inferGenerationTypeForKubeezCut(params: {
     return mode === 'image-to-video' ? 'IMAGE_2_VIDEO' : 'TEXT_2_VIDEO';
   }
 
-  if (baseCardId === 'sora-2') {
-    const mode = settings.sora2?.mode ?? 'text-to-video';
-    if (mode === 'storyboard') return undefined;
-    return mode === 'image-to-video' ? 'IMAGE_2_VIDEO' : 'TEXT_2_VIDEO';
-  }
-
   if (baseCardId === 'wan-2-5') {
     const src = settings.wan25?.source ?? 'text';
     return src === 'image' ? 'IMAGE_2_VIDEO' : 'TEXT_2_VIDEO';
@@ -79,18 +73,6 @@ export function inferGenerationTypeFromConcreteModelId(modelId: string): string 
     return 'IMAGE_2_VIDEO';
   }
   if (modelId.includes('kling-2-6-image-to-video') || modelId.includes('kling-2-6-text-to-video')) {
-    return modelId.includes('image-to-video') ? 'IMAGE_2_VIDEO' : 'TEXT_2_VIDEO';
-  }
-
-  // Sora 2
-  if (modelId.startsWith('sora-2-')) {
-    if (modelId.includes('storyboard')) return undefined;
-    if (modelId.includes('image-to-video')) return 'IMAGE_2_VIDEO';
-    if (modelId.includes('text-to-video')) return 'TEXT_2_VIDEO';
-  }
-
-  // Sora 2 Pro text/image (not storyboard)
-  if (modelId.includes('sora-2-pro-text-to-video') || modelId.includes('sora-2-pro-image-to-video')) {
     return modelId.includes('image-to-video') ? 'IMAGE_2_VIDEO' : 'TEXT_2_VIDEO';
   }
 

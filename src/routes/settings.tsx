@@ -35,7 +35,9 @@ import {
 } from '@/shared/utils/whisper-settings';
 import type { MediaTranscriptModel, MediaTranscriptQuantization } from '@/types/storage';
 import { cn } from '@/shared/ui/cn';
-import { SETTINGS_KUBEEZ_API_HASH } from '@/config/settings-kubeez-api';
+
+/** Hash anchor for deep-linking to the Kubeez account section. */
+const SETTINGS_KUBEEZ_API_HASH = 'kubeez-api';
 
 /** Centers `el` vertically in the viewport. `index.css` sets `* { scroll-behavior: auto }`; we briefly allow smooth on the root for this scroll only. */
 function scrollElementToVerticalCenter(el: HTMLElement, behavior: ScrollBehavior = 'smooth') {
@@ -112,9 +114,6 @@ function Settings() {
     const smoothId = window.setTimeout(() => center('smooth'), 50);
     const correctId = window.setTimeout(() => center('smooth'), 280);
 
-    const focusId = window.setTimeout(() => {
-      document.getElementById('kubeez-api-key')?.focus({ preventScroll: true });
-    }, 600);
     const clearHighlightId = window.setTimeout(() => setKubeezSectionHighlight(false), 2800);
 
     return () => {
@@ -122,7 +121,6 @@ function Settings() {
       if (raf2) cancelAnimationFrame(raf2);
       clearTimeout(smoothId);
       clearTimeout(correctId);
-      clearTimeout(focusId);
       clearTimeout(clearHighlightId);
     };
   }, [locationHash]);
@@ -346,7 +344,7 @@ function Settings() {
         >
           <div className="border-b border-border pb-2" />
           <div className="grid gap-4 max-w-xl">
-            <KubeezAccountSettings inputIdPrefix="kubeez-api-key" />
+            <KubeezAccountSettings />
           </div>
         </section>
 

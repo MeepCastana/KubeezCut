@@ -31,6 +31,33 @@ import {
   isCompositionAudioItem,
 } from '@/shared/utils/linked-media';
 import { evaluateAudioFadeInCurve, evaluateAudioFadeOutCurve, type AudioClipFadeSpan } from '@/shared/utils/audio-fade-curve';
+import { getOrEnhanceAudio, type AudioEnhanceSettings } from '@/features/export/deps/audio-enhance-contract';
+
+/**
+ * Two segments can only merge across a continuous boundary when their
+ * AI-enhance settings produce the same baked buffer. Compare bake-time
+ * fields only — `intensity` is play-time and never affects the merge.
+ */
+function areEnhanceSettingsEqual(
+  a: AudioEnhanceSettings | undefined,
+  b: AudioEnhanceSettings | undefined,
+): boolean {
+  const aOff = !a?.enabled;
+  const bOff = !b?.enabled;
+  if (aOff && bOff) return true;
+  if (aOff !== bOff) return false;
+  return (
+    (a!.model ?? 'rnnoise') === (b!.model ?? 'rnnoise')
+    && (a!.denoise ?? true) === (b!.denoise ?? true)
+    && (a!.aggressive ?? false) === (b!.aggressive ?? false)
+    && (a!.highPass ?? true) === (b!.highPass ?? true)
+    && (a!.hum ?? 'off') === (b!.hum ?? 'off')
+    && (a!.deEss ?? false) === (b!.deEss ?? false)
+    && (a!.voiceEq ?? false) === (b!.voiceEq ?? false)
+    && (a!.compress ?? true) === (b!.compress ?? true)
+    && (a!.normalize ?? true) === (b!.normalize ?? true)
+  );
+}
 
 const log = createLogger('CanvasAudio');
 
@@ -83,6 +110,11 @@ interface AudioSegment {
   audioCodec?: string;                  // Audio codec for lazy AC-3 decoder registration
   volumeKeyframes?: VolumeKeyframe[];  // Animated volume keyframes
   itemFrom: number;                     // Item's timeline start frame (for keyframe offset)
+  // Optional AI voice enhancement. When `audioEnhance.enabled`, the decoder
+  // path swaps to a baked enhanced AudioBuffer (RNNoise + chain) keyed by
+  // (mediaId, bake-settings-hash). Requires `mediaId` to be set.
+  mediaId?: string;
+  audioEnhance?: import('@/types/timeline').AudioEnhanceSettings;
 }
 
 type TransitionAudioItem = VideoItem | AudioItem;
@@ -389,6 +421,8 @@ function buildManagedTransitionAudioSegments<TItem extends TransitionAudioItem>(
       afterFrames: after,
       volumeKeyframes: entry.volumeKeyframes,
       itemFrom: entry.itemFrom,
+      mediaId: item.mediaId,
+      audioEnhance: item.audioEnhance,
     });
   }
 
@@ -411,6 +445,8 @@ function buildManagedTransitionAudioSegments<TItem extends TransitionAudioItem>(
     if (left.muted !== right.muted) return false;
     if (left.afterFrames !== 0 || right.beforeFrames !== 0) return false;
     if (left.volumeKeyframes || right.volumeKeyframes) return false;
+    // Different enhance settings produce different baked buffers — never merge.
+    if (!areEnhanceSettingsEqual(left.audioEnhance, right.audioEnhance)) return false;
     return true;
   };
 
@@ -442,6 +478,8 @@ function buildManagedTransitionAudioSegments<TItem extends TransitionAudioItem>(
     audioCodec: segment.audioCodec,
     volumeKeyframes: segment.volumeKeyframes,
     itemFrom: segment.itemFrom,
+    mediaId: segment.mediaId,
+    audioEnhance: segment.audioEnhance,
   });
 
   for (const segment of sortedSegments) {
@@ -790,6 +828,8 @@ export function extractAudioSegments(composition: CompositionInputProps, fps: nu
           audioCodec: audioEntry.audioCodec,
           volumeKeyframes: audioEntry.volumeKeyframes,
           itemFrom: item.from,
+          mediaId: item.mediaId,
+          audioEnhance: item.audioEnhance,
         });
       }
     }
@@ -845,6 +885,39 @@ export function extractAudioSegments(composition: CompositionInputProps, fps: nu
  * @param endTime - End time in seconds (optional, defaults to full duration)
  * @returns Decoded audio data for the specified range
  */
+/**
+ * Fetch the AI-enhanced AudioBuffer for a media + settings, then slice the
+ * needed [startTime, endTime] window into the same shape as `decodeAudioFromSource`.
+ *
+ * The enhanced buffer is a single full-duration AudioBuffer cached by the
+ * audio-enhance feature; concurrent segments share it.
+ */
+async function sliceEnhancedAudio(
+  mediaId: string,
+  src: string,
+  settings: AudioEnhanceSettings,
+  startTime: number,
+  endTime: number,
+): Promise<DecodedAudio> {
+  const buffer = await getOrEnhanceAudio(mediaId, src, settings);
+  const sampleRate = buffer.sampleRate;
+  const startSample = Math.max(0, Math.floor(startTime * sampleRate));
+  const endSample = Math.min(buffer.length, Math.ceil(endTime * sampleRate));
+  const length = Math.max(0, endSample - startSample);
+  const samples: Float32Array[] = [];
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const ch = buffer.getChannelData(c);
+    samples.push(ch.slice(startSample, endSample));
+  }
+  return {
+    itemId: '',
+    sampleRate,
+    channels: buffer.numberOfChannels,
+    samples,
+    duration: length / sampleRate,
+  };
+}
+
 async function decodeAudioFromSource(
   src: string,
   itemId: string,
@@ -1559,13 +1632,23 @@ export async function processAudio(
       const sourceEndTime = sourceStartTime + sourceDurationNeeded;
 
       // Decode ONLY the needed range using mediabunny (huge performance improvement!)
-      const decoded = await decodeAudioFromSource(
-        segment.src,
-        segment.itemId,
-        sourceStartTime,
-        sourceEndTime,
-        segment.audioCodec,
-      );
+      // If the segment has AI enhance enabled and a mediaId, swap to the
+      // baked enhanced AudioBuffer (full duration) and slice the needed window.
+      const decoded = (segment.audioEnhance?.enabled && segment.mediaId)
+        ? await sliceEnhancedAudio(
+            segment.mediaId,
+            segment.src,
+            segment.audioEnhance,
+            sourceStartTime,
+            sourceEndTime,
+          )
+        : await decodeAudioFromSource(
+            segment.src,
+            segment.itemId,
+            sourceStartTime,
+            sourceEndTime,
+            segment.audioCodec,
+          );
 
       // Process audio channels.
       // Note: decoded audio is already trimmed to the range we requested.

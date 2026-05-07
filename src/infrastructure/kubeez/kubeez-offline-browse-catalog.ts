@@ -78,13 +78,6 @@ const OFFLINE_BROWSE_VIDEO_MODELS: KubeezMediaModelOption[] = [
     supportsImageToVideo: true,
   }),
   vid({
-    model_id: 'sora-2-text-to-video-10s',
-    display_name: 'Sora 2',
-    provider: 'OpenAI',
-    supportsTextToVideo: true,
-    supportsImageToVideo: true,
-  }),
-  vid({
     model_id: 'veo3-1-fast-text-to-video',
     display_name: 'Veo 3.1',
     provider: 'Google',

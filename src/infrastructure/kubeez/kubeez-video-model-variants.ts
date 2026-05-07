@@ -13,7 +13,6 @@ const VIDEO_VARIANT_SUFFIX_RE = /^(.+?)-(?:(\d+p)-)?(\d+)s(-audio)?$/;
  * Extended duration-encoded ids whose tail is `-Ns-<res|tier>` rather than `-Ns` / `-res-Ns`:
  *
  *  - Wan 2.5: `wan-2-5-{text,image}-to-video-{5s,10s}-{720p,1080p}`
- *  - Sora 2 Pro: `sora-2-pro-{text,image}-to-video-{10s,15s}-{hd,standard}`
  *
  * Only used by `videoModelIdEncodesVariantParams` to keep the POST body from appending a
  * conflicting `duration` field. The grid-merge parser (above) stays strict.

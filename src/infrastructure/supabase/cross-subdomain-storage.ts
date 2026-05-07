@@ -46,10 +46,11 @@ function readRawCookie(name: string): string | null {
     new RegExp('(?:^|; )' + escapeRegex(name) + '=([^;]*)'),
   );
   if (!match) return null;
+  const raw = match[1] ?? '';
   try {
-    return decodeURIComponent(match[1]);
+    return decodeURIComponent(raw);
   } catch {
-    return match[1];
+    return raw;
   }
 }
 

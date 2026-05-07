@@ -8,6 +8,7 @@ import { Item, type MaskInfo } from '../components/item';
 import { CompositionContent } from '../components/composition-content';
 import { PitchCorrectedAudio } from '../components/pitch-corrected-audio';
 import { CustomDecoderAudio } from '../components/custom-decoder-audio';
+import { CustomDecoderBufferedAudio } from '../components/custom-decoder-buffered-audio';
 import { useMediaLibraryStore } from '@/features/composition-runtime/deps/stores';
 import { needsCustomAudioDecoder } from '../utils/audio-codec-detection';
 import { StableVideoSequence, type StableVideoSequenceItem } from '../components/stable-video-sequence';
@@ -275,7 +276,22 @@ export const MainComposition: React.FC<CompositionInputProps> = ({
     return map;
   }, [mediaItems]);
 
+  // Items with AI voice enhancement enabled must go through the buffered
+  // (Web Audio) decoder path so the enhanced AudioBuffer can replace the
+  // raw decode. The native <audio> path can't swap to an in-memory buffer.
+  const enhanceEnabledItemIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const track of tracks) {
+      for (const item of track.items) {
+        if (item.audioEnhance?.enabled === true) ids.add(item.id);
+      }
+    }
+    return ids;
+  }, [tracks]);
+
   const shouldUseCustomDecoder = useCallback((segment: VideoAudioSegment | AudioSegment): boolean => {
+    if (enhanceEnabledItemIds.has(segment.itemId)) return true;
+
     if (!segment.mediaId) {
       // Legacy clips without media linkage: safest fallback is custom decode.
       return true;
@@ -290,7 +306,7 @@ export const MainComposition: React.FC<CompositionInputProps> = ({
     // Video assets usually expose audio codec in media.audioCodec.
     // Audio-only assets persist their codec in media.codec.
     return needsCustomAudioDecoder(media.audioCodec ?? media.codec);
-  }, [mediaById]);
+  }, [mediaById, enhanceEnabledItemIds]);
 
   // Collect adjustment layers from VISIBLE tracks (for effect application)
   // Effects from hidden tracks should not be applied
@@ -366,6 +382,14 @@ export const MainComposition: React.FC<CompositionInputProps> = ({
           {transitionAudioSegments.map((segment) => {
             const useCustomDecoder = shouldUseCustomDecoder(segment);
             const decodeMediaId = segment.mediaId ?? `legacy-src:${segment.src}`;
+            // 1× clips go through Web Audio buffered playback regardless of
+            // codec — `AudioBufferSourceNode.start(when, offset)` is sample-
+            // accurate with zero seek latency. HTML5 <audio> seek pauses the
+            // element ~200-300ms internally, which compounds into a perpetual
+            // drift-correction loop when the user clicks a new position mid-
+            // playback. Pitch-preserved fallback is only needed at non-1× rates.
+            const playbackRateNormalized = segment.playbackRate ?? 1;
+            const useBufferedAudio = Math.abs(playbackRateNormalized - 1) < 0.001;
             return (
               <Sequence
                 key={segment.key}
@@ -373,7 +397,32 @@ export const MainComposition: React.FC<CompositionInputProps> = ({
                 durationInFrames={segment.durationInFrames}
                 premountFor={Math.round(fps * TRANSITION_AUDIO_PREMOUNT_SECONDS)}
               >
-                {useCustomDecoder ? (
+                {useBufferedAudio ? (
+                  <CustomDecoderBufferedAudio
+                    src={segment.src}
+                    mediaId={decodeMediaId}
+                    itemId={segment.itemId}
+                    trimBefore={segment.trimBefore}
+                    sourceFps={segment.sourceFps}
+                    volume={segment.volumeDb}
+                    playbackRate={segment.playbackRate}
+                    muted={segment.muted}
+                    durationInFrames={segment.durationInFrames}
+                    audioFadeIn={segment.audioFadeIn}
+                    audioFadeOut={segment.audioFadeOut}
+                    audioFadeInCurve={segment.audioFadeInCurve}
+                    audioFadeOutCurve={segment.audioFadeOutCurve}
+                    audioFadeInCurveX={segment.audioFadeInCurveX}
+                    audioFadeOutCurveX={segment.audioFadeOutCurveX}
+                    clipFadeSpans={segment.clipFadeSpans}
+                    contentStartOffsetFrames={segment.contentStartOffsetFrames}
+                    contentEndOffsetFrames={segment.contentEndOffsetFrames}
+                    fadeInDelayFrames={segment.fadeInDelayFrames}
+                    fadeOutLeadFrames={segment.fadeOutLeadFrames}
+                    crossfadeFadeIn={segment.crossfadeFadeIn}
+                    crossfadeFadeOut={segment.crossfadeFadeOut}
+                  />
+                ) : useCustomDecoder ? (
                   <CustomDecoderAudio
                     src={segment.src}
                     mediaId={decodeMediaId}
@@ -431,6 +480,8 @@ export const MainComposition: React.FC<CompositionInputProps> = ({
           {audioSegments.map((segment) => {
             const useCustomDecoder = shouldUseCustomDecoder(segment);
             const decodeMediaId = segment.mediaId ?? `legacy-src:${segment.src}`;
+            const playbackRateNormalized = segment.playbackRate ?? 1;
+            const useBufferedAudio = Math.abs(playbackRateNormalized - 1) < 0.001;
             return (
               <Sequence
                 key={segment.key}
@@ -438,7 +489,26 @@ export const MainComposition: React.FC<CompositionInputProps> = ({
                 durationInFrames={segment.durationInFrames}
                 premountFor={Math.round(fps * STANDALONE_AUDIO_PREMOUNT_SECONDS)}
               >
-                {useCustomDecoder ? (
+                {useBufferedAudio ? (
+                  <CustomDecoderBufferedAudio
+                    src={segment.src}
+                    mediaId={decodeMediaId}
+                    itemId={segment.itemId}
+                    trimBefore={segment.trimBefore}
+                    sourceFps={segment.sourceFps}
+                    volume={segment.volumeDb}
+                    playbackRate={segment.playbackRate}
+                    muted={segment.muted}
+                    durationInFrames={segment.durationInFrames}
+                    audioFadeIn={segment.audioFadeIn}
+                    audioFadeOut={segment.audioFadeOut}
+                    audioFadeInCurve={segment.audioFadeInCurve}
+                    audioFadeOutCurve={segment.audioFadeOutCurve}
+                    audioFadeInCurveX={segment.audioFadeInCurveX}
+                    audioFadeOutCurveX={segment.audioFadeOutCurveX}
+                    clipFadeSpans={segment.clipFadeSpans}
+                  />
+                ) : useCustomDecoder ? (
                   <CustomDecoderAudio
                     src={segment.src}
                     mediaId={decodeMediaId}

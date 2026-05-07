@@ -49,6 +49,18 @@ export interface TrackMediaGhostPreview {
   previewBelowTrackId?: string;
 }
 
+/**
+ * Returns true when none of the given track IDs have any item rect in `itemsToCheck`.
+ * Used to "snap to frame 0" when a user drops the very first clip onto an empty lane —
+ * the cursor frame is intentionally ignored so a fresh sequence starts at the timeline origin.
+ */
+function areAllTracksEmpty(
+  trackIds: string[],
+  itemsToCheck: CollisionRect[]
+): boolean {
+  return !itemsToCheck.some((rect) => trackIds.includes(rect.trackId));
+}
+
 function resolveSyncedDropFrame(
   proposedFrom: number,
   durationInFrames: number,
@@ -222,10 +234,19 @@ export function planTrackMediaDropPlacements<T>(params: {
       }
       workingTracks = linkedTrackTargets.tracks;
 
+      /**
+       * First clip into a brand-new (empty) lane snaps to frame 0 so users don't end up with a big
+       * gap before their first clip. Both the video and the audio companion must be empty for the
+       * linked drop, otherwise honor the cursor.
+       */
+      const linkedTargetIds = [linkedTrackTargets.videoTrackId, linkedTrackTargets.audioTrackId];
+      const proposedLinkedFrom = areAllTracksEmpty(linkedTargetIds, itemsToCheck)
+        ? 0
+        : currentPosition;
       const syncFrom = resolveSyncedDropFrame(
-        currentPosition,
+        proposedLinkedFrom,
         entry.durationInFrames,
-        [linkedTrackTargets.videoTrackId, linkedTrackTargets.audioTrackId],
+        linkedTargetIds,
         itemsToCheck,
       );
 
@@ -248,8 +269,16 @@ export function planTrackMediaDropPlacements<T>(params: {
         },
       ];
     } else {
+      /**
+       * First clip into a brand-new (empty) lane snaps to frame 0 — see linked branch comment.
+       * After placement, `currentPosition` chains to `0 + duration`, so subsequent multi-file
+       * entries onto the same empty lane stack right after the first with no gap.
+       */
+      const proposedFrom = areAllTracksEmpty([primaryTrackState.trackId], itemsToCheck)
+        ? 0
+        : currentPosition;
       const finalPosition = findNearestAvailableSpace(
-        currentPosition,
+        proposedFrom,
         entry.durationInFrames,
         primaryTrackState.trackId,
         itemsToCheck,

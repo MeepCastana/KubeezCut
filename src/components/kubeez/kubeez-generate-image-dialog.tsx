@@ -25,8 +25,9 @@ import {
   KubeezGenerateSelectedModelPanel,
   type ModelTab,
 } from '@/components/kubeez/kubeez-generate-dialog-fragments';
-import { useSettingsStore } from '@/features/settings/stores/settings-store';
-import { useEffectiveKubeezToken } from '@/shared/state/kubeez-account';
+import { useEffectiveKubeezToken, useKubeezSession } from '@/shared/state/kubeez-account';
+import { ConnectKubeezAccountButton } from '@/components/kubeez/connect-kubeez-account-button';
+import { KubeezAccountChip } from '@/components/kubeez/kubeez-account-chip';
 import { useProjectStore } from '@/features/projects/stores/project-store';
 import { usePlaybackStore } from '@/shared/state/playback';
 import { useTimelineStore } from '@/features/timeline/stores/timeline-store';
@@ -90,9 +91,6 @@ import { toast } from 'sonner';
 import { createLogger } from '@/shared/logging/logger';
 import { Film, Image as ImageIcon, Info, Paperclip, Video, X } from 'lucide-react';
 import { cn } from '@/shared/ui/cn';
-import { Link, useNavigate } from '@tanstack/react-router';
-import { SETTINGS_KUBEEZ_API_LINK_PROPS } from '@/config/settings-kubeez-api';
-import { markKubeezGenerateReopenAfterSettings } from '@/shared/state/kubeez-generate-dialog';
 
 const logger = createLogger('KubeezGenerateDialog');
 
@@ -164,22 +162,16 @@ export function KubeezGenerateImageDialog({
   onOpenChange,
   timelinePlacement,
 }: KubeezGenerateImageDialogProps) {
-  const navigate = useNavigate();
-  // Effective auth token: live Supabase session JWT (preferred) → stored
-  // pasted API key (fallback for OSS / standalone). Existing call sites
-  // keep the `apiKey` parameter name; it's a Bearer-style token now.
+  // Effective auth token comes from the live Supabase session JWT. Existing
+  // call sites keep the `apiKey` parameter name; it's a Bearer-style token.
   const { token: kubeezApiKey, hasAuth: hasKubeezAuth } = useEffectiveKubeezToken();
-  const kubeezApiBaseUrl = useSettingsStore((s) => s.kubeezApiBaseUrl);
+  const { isConfigured: isKubeezAccountConfigured } = useKubeezSession();
   const currentProject = useProjectStore((s) => s.currentProject);
-  const markReopenGenerateAfterSettings = () => {
-    const id = currentProject?.id;
-    if (id) markKubeezGenerateReopenAfterSettings(id);
-  };
   const fps = useTimelineStore((s) => s.fps);
 
   const { credits: userCredits, refresh: refreshCredits, deduct: deductCredits } = useKubeezCredits({
     apiKey: kubeezApiKey,
-    baseUrl: kubeezApiBaseUrl ?? undefined,
+    baseUrl: undefined,
     enabled: open && hasKubeezAuth,
   });
 
@@ -325,16 +317,6 @@ export function KubeezGenerateImageDialog({
             ...patch.kling30,
           };
         }
-        if (patch.sora2 != null || cur.settings.sora2 != null) {
-          nextSettings.sora2 = {
-            tier: 'base',
-            mode: 'text-to-video',
-            duration: '10s',
-            proQuality: 'standard',
-            ...cur.settings.sora2,
-            ...patch.sora2,
-          };
-        }
         if (patch.veo31 != null || cur.settings.veo31 != null) {
           nextSettings.veo31 = {
             tier: 'fast',
@@ -351,6 +333,16 @@ export function KubeezGenerateImageDialog({
             resolution: '1080p',
             ...cur.settings.wan25,
             ...patch.wan25,
+          };
+        }
+        if (patch.seedance2 != null || cur.settings.seedance2 != null) {
+          nextSettings.seedance2 = {
+            tier: 'fast',
+            resolution: '720p',
+            videoRef: false,
+            withAudio: true,
+            ...cur.settings.seedance2,
+            ...patch.seedance2,
           };
         }
         let variants = getVariantsForBaseCardId(
@@ -733,7 +725,6 @@ export function KubeezGenerateImageDialog({
 
     fetchKubeezGroupedMediaModels({
       apiKey,
-      baseUrl: kubeezApiBaseUrl?.trim() || undefined,
       signal: ac.signal,
     })
       .then((result) => {
@@ -782,7 +773,7 @@ export function KubeezGenerateImageDialog({
       cancelled = true;
       ac.abort();
     };
-  }, [open, kubeezApiKey, kubeezApiBaseUrl]);
+  }, [open, kubeezApiKey]);
 
   const handleSubmit = useCallback(async () => {
     const trimmed = promptRef.current.trim();
@@ -799,15 +790,7 @@ export function KubeezGenerateImageDialog({
 
     const apiKey = kubeezApiKey?.trim() ?? '';
     if (!apiKey) {
-      toast.error('Add your Kubeez API key in Settings.', {
-        action: {
-          label: 'Open Settings',
-          onClick: () => {
-            markReopenGenerateAfterSettings();
-            void navigate({ ...SETTINGS_KUBEEZ_API_LINK_PROPS });
-          },
-        },
-      });
+      toast.error('Connect your Kubeez account to generate.');
       return;
     }
 
@@ -901,7 +884,6 @@ export function KubeezGenerateImageDialog({
     const canvasHeight = currentProject?.metadata.height ?? 1080;
 
     const isVideo = uiModel.mediaKind === 'video';
-    const baseUrl = kubeezApiBaseUrl?.trim() || undefined;
 
     const videoAspectUi = isVideo
       ? getVideoAspectUi(mediaGenModelId, { veoMode: submitSettings.veo31?.mode })
@@ -937,7 +919,7 @@ export function KubeezGenerateImageDialog({
       if (isMusic) {
         void runKubeezGenerateJobInBackground(jobId, {
           apiKey,
-          baseUrl,
+          baseUrl: undefined,
           projectId,
           prompt: trimmed,
           mode: 'music',
@@ -953,7 +935,7 @@ export function KubeezGenerateImageDialog({
         const stability = Math.min(1, Math.max(0, Number.parseFloat(dialogueStability) || 0.5));
         void runKubeezGenerateJobInBackground(jobId, {
           apiKey,
-          baseUrl,
+          baseUrl: undefined,
           projectId,
           prompt: trimmed,
           mode: 'speech',
@@ -970,7 +952,7 @@ export function KubeezGenerateImageDialog({
       } else {
         void runKubeezGenerateJobInBackground(jobId, {
           apiKey,
-          baseUrl,
+          baseUrl: undefined,
           projectId,
           prompt: trimmed,
           mode: 'image_video',
@@ -995,6 +977,13 @@ export function KubeezGenerateImageDialog({
             resolution:
               mediaGenModelId === 'gpt-image-2'
                 ? ({ '1k': '1K', '2k': '2K', '4k': '4K' } as const)[submitSettings.imageResolution ?? '1k']
+                : undefined,
+            // Body field `sound` for Kubeez models with `toggle_via_sound_param` (Seedance 2).
+            // We only attach it when the user has the Seedance 2 settings panel active so we
+            // never override server defaults for unrelated models.
+            sound:
+              submitSettings.seedance2 !== undefined
+                ? submitSettings.seedance2.withAudio
                 : undefined,
           },
           timelinePlacement,
@@ -1041,7 +1030,6 @@ export function KubeezGenerateImageDialog({
     fps,
     imageQuality,
     imageModels,
-    kubeezApiBaseUrl,
     kubeezApiKey,
     musicInstrumental,
     musicModels,
@@ -1332,7 +1320,7 @@ export function KubeezGenerateImageDialog({
           motion-reduce:duration-150 motion-reduce:data-[state=open]:slide-in-from-bottom-0 motion-reduce:data-[state=closed]:slide-out-to-bottom-0 motion-reduce:data-[state=open]:zoom-in-100 motion-reduce:data-[state=closed]:zoom-out-100"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border/80 bg-muted/15 px-4 py-2 sm:px-5">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <img
               src={KUBEEZ_BRAND_LOGO_URL}
               alt="Kubeez"
@@ -1348,32 +1336,25 @@ export function KubeezGenerateImageDialog({
                 {' \u00b7 Powered by Kubeez'}
               </DialogDescription>
             </DialogHeader>
+            <KubeezAccountChip credits={userCredits} className="ml-1" />
           </div>
           <div className="flex items-center gap-2" />
         </div>
 
-        {missingKey && (
+        {missingKey && isKubeezAccountConfigured && (
           <div className="mx-4 mt-3 sm:mx-5">
             <div
-              className="flex gap-3 rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs"
+              className="flex flex-col gap-2 rounded-lg border border-border bg-muted/50 px-3 py-3 text-xs sm:flex-row sm:items-center sm:justify-between"
               role="status"
               aria-live="polite"
             >
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
-              <p className="text-muted-foreground">
-                Add a Kubeez API key in{' '}
-                <Link
-                  {...SETTINGS_KUBEEZ_API_LINK_PROPS}
-                  onClick={markReopenGenerateAfterSettings}
-                  className="text-foreground underline underline-offset-2 hover:text-primary"
-                >
-                  Settings
-                </Link>{' '}
-                to generate. Get one at{' '}
-                <a href="https://kubeez.com" target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-2 hover:text-primary">
-                  kubeez.com
-                </a>.
-              </p>
+              <div className="flex gap-3">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                <p className="text-muted-foreground">
+                  Connect your Kubeez account to generate media.
+                </p>
+              </div>
+              <ConnectKubeezAccountButton size="sm" className="shrink-0" />
             </div>
           </div>
         )}
@@ -1405,6 +1386,9 @@ export function KubeezGenerateImageDialog({
               onPatchModelSettings={patchModelSettings}
               videoAspectRatio={videoAspectRatio}
               onVideoAspectRatioChange={setVideoAspectRatio}
+              videoDuration={videoDuration}
+              onVideoDurationChange={setVideoDuration}
+              showDurationControl={showDurationControl}
               modelFamilyItem={modelFamilyForSelection}
               videoFooterHint={videoFooterHint}
               busy={isStartingJob}
@@ -1833,23 +1817,6 @@ export function KubeezGenerateImageDialog({
                 </div>
               ))}
 
-            {showDurationControl && uiModel?.durationOptions && (
-              <div className="shrink-0 space-y-2">
-                <Label className="text-foreground/90">Duration</Label>
-                <Select value={videoDuration} onValueChange={setVideoDuration} disabled={isStartingJob}>
-                  <SelectTrigger className="border-border/70 bg-card/50 shadow-sm">
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uiModel.durationOptions.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {showAspectRatioControl && aspectChoices.length > 0 && (
               <div className="shrink-0 space-y-2">
@@ -1907,13 +1874,6 @@ export function KubeezGenerateImageDialog({
           <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)} disabled={isStartingJob}>
             Cancel
           </Button>
-
-          {typeof userCredits === 'number' && (
-            <div className="flex items-center gap-1.5 rounded-full border border-border/50 bg-card/40 px-2.5 py-0.5">
-              <span className="text-xs font-bold tabular-nums text-foreground">{Math.floor(userCredits).toLocaleString()}</span>
-              <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">credits</span>
-            </div>
-          )}
 
           <div className="flex-1" />
           <Button type="button" size="sm" onClick={() => void handleSubmit()} disabled={isStartingJob || missingKey || referenceRequirementBlocked}>

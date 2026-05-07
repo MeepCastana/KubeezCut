@@ -13,6 +13,18 @@ import { videoModelIdEncodesVariantParams } from '@/infrastructure/kubeez/kubeez
 import { createLogger } from '@/shared/logging/logger';
 import type { MediaMetadata } from '@/types/storage';
 import { toast } from 'sonner';
+import { useInsufficientCreditsModal } from '@/components/kubeez/insufficient-credits-store';
+
+/**
+ * api.kubeez.com surfaces "out of credits" as HTTP 400 with body
+ * `{ "error": "insufficient_credits" }` — `generateKubeezMediaBlob` throws
+ * with `message: "insufficient_credits"`. We match that prefix loosely so a
+ * future variant like `insufficient_credits: needs 5, has 0` still triggers
+ * the modal.
+ */
+function isInsufficientCreditsError(message: string): boolean {
+  return /insufficient[_ ]credits/i.test(message);
+}
 
 const logger = createLogger('KubeezGenerateJob');
 
@@ -54,6 +66,8 @@ export type KubeezGenerateJobSnapshot = {
     quality?: string;
     /** POST /v1/generate/media `resolution` when applicable (e.g. GPT Image 2 1K/2K/4K). */
     resolution?: string;
+    /** POST /v1/generate/media `sound` for models with `toggle_via_sound_param` (e.g. Seedance 2). */
+    sound?: boolean;
   };
   timelinePlacement?: { trackId: string };
   playheadFrame: number;
@@ -253,6 +267,7 @@ export async function runKubeezGenerateJobInBackground(
       preferVideoOutput: iv.isVideo,
       ...(iv.quality !== undefined && iv.quality !== '' ? { quality: iv.quality } : {}),
       ...(iv.resolution !== undefined && iv.resolution !== '' ? { resolution: iv.resolution } : {}),
+      ...(iv.sound !== undefined ? { sound: iv.sound } : {}),
       ...(hasSources ? { sourceMediaUrls } : {}),
     });
 
@@ -300,6 +315,12 @@ export async function runKubeezGenerateJobInBackground(
     const message = e instanceof Error ? e.message : 'Generation failed';
     logger.error('Kubeez generate failed', e);
     dismissPending();
-    toast.error(message);
+    if (isInsufficientCreditsError(message)) {
+      useInsufficientCreditsModal.getState().open({
+        context: `Tried to run ${mediaGenModelId}.`,
+      });
+    } else {
+      toast.error(message);
+    }
   }
 }

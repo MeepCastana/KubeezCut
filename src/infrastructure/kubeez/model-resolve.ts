@@ -19,14 +19,14 @@ import {
   mapKling26MotionToModelId,
   mapKling26ToModelId,
   mapKling30ToModelId,
-  mapSora2ToModelId,
   mapMusicEngineToModelId,
+  mapSeedance2ToModelId,
   mapVeo31ToModelId,
   mapWan25ToModelId,
   mapZImageTierToModelId,
   parseKling26Variant,
   parseKling30Variant,
-  parseSora2Variant,
+  parseSeedance2Variant,
   parseVeo31Variant,
   parseWan25Variant,
   type KubeezModelFamilyRegistryEntry,
@@ -152,14 +152,14 @@ export function resolveGenerationModelId(params: ResolveGenerationParams): strin
     return variants.some((v) => v.model_id === id) ? id : pickFallbackVariantId(variants, id);
   }
 
-  if (entry.baseCardId === 'sora-2') {
-    const s = settings.sora2 ?? {
-      tier: 'base' as const,
-      mode: 'text-to-video' as const,
-      duration: '10s' as const,
-      proQuality: 'standard' as const,
+  if (entry.baseCardId === 'seedance-2-fast') {
+    const s = settings.seedance2 ?? {
+      tier: 'fast' as const,
+      resolution: '720p' as const,
+      videoRef: false,
+      withAudio: true,
     };
-    const id = mapSora2ToModelId(s);
+    const id = mapSeedance2ToModelId(s);
     return variants.some((v) => v.model_id === id) ? id : pickFallbackVariantId(variants, id);
   }
 
@@ -287,10 +287,10 @@ export function resolveSelectionFromConcreteModelId(
     const parsed =
       parseKling30Variant(concreteModelId) ?? parseKling30Variant(pickDefaultVariant(variants).model_id);
     if (parsed) settings = { kling30: parsed };
-  } else if (entry.baseCardId === 'sora-2') {
+  } else if (entry.baseCardId === 'seedance-2-fast') {
     const parsed =
-      parseSora2Variant(concreteModelId) ?? parseSora2Variant(pickDefaultVariant(variants).model_id);
-    if (parsed) settings = { sora2: parsed };
+      parseSeedance2Variant(concreteModelId) ?? parseSeedance2Variant(pickDefaultVariant(variants).model_id);
+    if (parsed) settings = { seedance2: parsed };
   } else if (entry.strategy === 'composed') {
     const parsed =
       parseSelectionFromVideoVariantId(concreteModelId) ??
