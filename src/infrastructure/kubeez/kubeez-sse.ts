@@ -4,6 +4,8 @@
  * @see OpenAPI Streaming tag — heartbeat / ping events ignored.
  */
 
+import { buildKubeezApiHeaders } from '@/infrastructure/kubeez/kubeez-client-headers';
+
 function extractStreamErrorMessage(data: unknown): string | undefined {
   if (!data || typeof data !== 'object') return undefined;
   const o = data as Record<string, unknown>;
@@ -74,11 +76,13 @@ export async function readKubeezSseUntilResult(params: {
 
   const res = await fetch(url, {
     method: 'GET',
-    headers: {
-      Accept: 'text/event-stream',
-      Authorization: `Bearer ${apiKey}`,
-      'Cache-Control': 'no-store',
-    },
+    headers: buildKubeezApiHeaders({
+      apiKey,
+      extra: {
+        Accept: 'text/event-stream',
+        'Cache-Control': 'no-store',
+      },
+    }),
     signal,
   });
 

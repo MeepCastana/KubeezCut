@@ -5,6 +5,7 @@ import {
 } from '@/infrastructure/kubeez/kubeez-cdn-fetch-url';
 import { readKubeezSseUntilResult } from '@/infrastructure/kubeez/kubeez-sse';
 import { extractKubeezPollStatus, isKubeezPlainObject } from '@/infrastructure/kubeez/kubeez-poll-status';
+import { buildKubeezApiHeaders } from '@/infrastructure/kubeez/kubeez-client-headers';
 import { createLogger } from '@/shared/logging/logger';
 
 const logger = createLogger('Kubeez');
@@ -307,7 +308,7 @@ async function finalizeMediaGenerationFromStatus(
         logger.debug('Kubeez — waiting for cdn_ready after completion');
       }
       await sleep(MEDIA_DOWNLOAD_RETRY_MS, signal);
-      const r = await fetch(statusUrl, { headers: { Authorization: `Bearer ${apiKey}` }, signal });
+      const r = await fetch(statusUrl, { headers: buildKubeezApiHeaders({ apiKey }), signal });
       if (r.ok) {
         body = await parseJsonResponse(r);
       }
@@ -319,7 +320,7 @@ async function finalizeMediaGenerationFromStatus(
       firstOutputMediaUrl(body, prefer) ?? firstOutputMediaUrl(body, prefer === 'video' ? 'image' : 'video');
     if (!mediaUrl) {
       await sleep(MEDIA_DOWNLOAD_RETRY_MS, signal);
-      const r = await fetch(statusUrl, { headers: { Authorization: `Bearer ${apiKey}` }, signal });
+      const r = await fetch(statusUrl, { headers: buildKubeezApiHeaders({ apiKey }), signal });
       if (r.ok) {
         body = await parseJsonResponse(r);
       }
@@ -345,7 +346,7 @@ async function finalizeMediaGenerationFromStatus(
     }
     if (mediaRes.status === 404 && d < MEDIA_DOWNLOAD_RETRIES - 1) {
       await sleep(MEDIA_DOWNLOAD_RETRY_MS, signal);
-      const r = await fetch(statusUrl, { headers: { Authorization: `Bearer ${apiKey}` }, signal });
+      const r = await fetch(statusUrl, { headers: buildKubeezApiHeaders({ apiKey }), signal });
       if (r.ok) {
         body = await parseJsonResponse(r);
       }
@@ -416,10 +417,10 @@ export async function generateKubeezMediaBlob(params: GenerateTextToImageParams)
   } = params;
 
   const root = resolveKubeezApiBaseUrl(baseUrl);
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-  };
+  const headers: Record<string, string> = buildKubeezApiHeaders({
+    apiKey,
+    extra: { 'Content-Type': 'application/json' },
+  });
 
   const urls = sourceMediaUrls?.filter((u) => typeof u === 'string' && u.trim().length > 0) ?? [];
   const generationType =
@@ -498,7 +499,7 @@ export async function generateKubeezMediaBlob(params: GenerateTextToImageParams)
     }
 
     const statusRes = await fetch(`${root}/v1/generate/media/${encodeURIComponent(generationId)}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers: buildKubeezApiHeaders({ apiKey }),
       signal,
     });
     const statusBody = await parseJsonResponse(statusRes);

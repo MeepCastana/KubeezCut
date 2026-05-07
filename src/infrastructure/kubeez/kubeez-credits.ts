@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { resolveKubeezApiBaseUrl } from './kubeez-text-to-image';
+import { buildKubeezApiHeaders } from './kubeez-client-headers';
 import { createLogger } from '@/shared/logging/logger';
 
 const logger = createLogger('KubeezCredits');
@@ -93,7 +94,7 @@ export async function fetchKubeezCredits(params: {
 
   try {
     const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${params.apiKey}` },
+      headers: buildKubeezApiHeaders({ apiKey: params.apiKey }),
       signal: params.signal,
     });
 

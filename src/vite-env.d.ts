@@ -23,3 +23,9 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
   readonly VITE_SUPABASE_ANON_KEY?: string;
 }
+
+/**
+ * Build-time package.json version, injected by Vite `define` (see vite.config.ts).
+ * Used for diagnostics / build correlation.
+ */
+declare const __APP_VERSION__: string;

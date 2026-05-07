@@ -9,6 +9,7 @@ import { documentedMaxReferenceFilesForModelId } from './kubeez-documented-refer
 import { applyModelRequirementFallbacks } from './kubeez-model-requirements-fallback';
 import { applyVideoCapabilityOverrides } from './kubeez-video-model-capability-overrides';
 import { resolveKubeezApiBaseUrl } from './kubeez-text-to-image';
+import { buildKubeezApiHeaders } from './kubeez-client-headers';
 
 const logger = createLogger('KubeezModels');
 
@@ -456,7 +457,7 @@ async function fetchModelsForType(params: {
   const url = `${root}/v1/models?model_type=${encodeURIComponent(params.modelType)}`;
 
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${params.apiKey}` },
+    headers: buildKubeezApiHeaders({ apiKey: params.apiKey }),
     signal: params.signal,
   });
 

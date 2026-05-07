@@ -1,5 +1,6 @@
 import { createLogger } from '@/shared/logging/logger';
 import { resolveKubeezApiBaseUrl } from './kubeez-text-to-image';
+import { buildKubeezApiHeaders } from './kubeez-client-headers';
 
 const logger = createLogger('KubeezUpload');
 
@@ -79,7 +80,8 @@ export async function uploadKubeezMediaFile(params: UploadKubeezMediaFileParams)
 
   const res = await fetch(url, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}` },
+    // FormData sets its own Content-Type w/ boundary — don't override.
+    headers: buildKubeezApiHeaders({ apiKey }),
     body: form,
     signal,
   });

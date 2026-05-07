@@ -4,6 +4,7 @@ import { readKubeezSseUntilResult } from '@/infrastructure/kubeez/kubeez-sse';
 import { createLogger } from '@/shared/logging/logger';
 import { DEFAULT_VOICE_ID, TEXT_TO_DIALOGUE_VOICES, type VoiceCategory } from '@/infrastructure/kubeez/kubeez-dialogue-voices';
 import { KUBEEZ_CLIENT_HTTP_405_HINT, resolveKubeezApiBaseUrl } from './kubeez-text-to-image';
+import { buildKubeezApiHeaders } from './kubeez-client-headers';
 
 const logger = createLogger('KubeezAudio');
 
@@ -344,7 +345,7 @@ async function fetchMusicJobStatusOr404Pair(params: {
   const { root, apiKey, generationId, signal } = params;
   const musicUrl = `${root}/v1/generate/music/${encodeURIComponent(generationId)}`;
   const mediaUrl = `${root}/v1/generate/media/${encodeURIComponent(generationId)}`;
-  const headers = { Authorization: `Bearer ${apiKey}` };
+  const headers = buildKubeezApiHeaders({ apiKey });
 
   const musicRes = await fetch(musicUrl, { headers, signal });
   const musicBody = await parseJsonResponse(musicRes);
@@ -456,7 +457,7 @@ async function pollKubeezMusicJob(params: {
     if (terminalOk) {
       // Terminal: try the other endpoint first (with final audio_url requirement)
       const otherUrl = via === 'music' ? mediaUrl : musicUrl;
-      const otherRes = await fetch(otherUrl, { headers: { Authorization: `Bearer ${apiKey}` }, signal });
+      const otherRes = await fetch(otherUrl, { headers: buildKubeezApiHeaders({ apiKey }), signal });
       if (otherRes.ok) {
         const otherBody = await parseJsonResponse(otherRes);
         const resolvedOther = await tryResolveMusicCompletionPayload(otherBody, signal);
@@ -517,7 +518,7 @@ async function pollKubeezDialogueJob(params: {
     }
 
     const statusRes = await fetch(pollUrl, {
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers: buildKubeezApiHeaders({ apiKey }),
       signal,
     });
     const statusBody = await parseJsonResponse(statusRes);
@@ -592,10 +593,10 @@ export async function generateKubeezMusicFiles(
   const { apiKey, baseUrl, prompt, instrumental = false, model = 'V5', signal } = params;
 
   const root = resolveKubeezApiBaseUrl(baseUrl);
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-  };
+  const headers: Record<string, string> = buildKubeezApiHeaders({
+    apiKey,
+    extra: { 'Content-Type': 'application/json' },
+  });
 
   const startRes = await fetch(`${root}/v1/generate/music`, {
     method: 'POST',
@@ -678,10 +679,10 @@ export async function generateKubeezDialogueBlob(params: GenerateKubeezDialogueP
   }
 
   const root = resolveKubeezApiBaseUrl(baseUrl);
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-  };
+  const headers: Record<string, string> = buildKubeezApiHeaders({
+    apiKey,
+    extra: { 'Content-Type': 'application/json' },
+  });
 
   const payload = {
     model: 'text-to-dialogue-v3',

@@ -6,6 +6,14 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { getBlogSitemapPaths } from './src/content/blog-posts'
 
+// Read package.json once at config-evaluation time so __APP_VERSION__ is a
+// build-time constant. Read manually so this Node-side import doesn't go
+// through the JSON ESM assertion path (which differs across Node versions).
+const PACKAGE_JSON = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'),
+) as { version: string }
+const APP_VERSION = PACKAGE_JSON.version
+
 function resolvePublicSiteUrl(mode: string): string {
   const env = loadEnv(mode, process.cwd(), '')
   const raw = env.VITE_PUBLIC_SITE_URL || 'https://editor.kubeez.com'
@@ -95,7 +103,11 @@ ${urlEntries}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
-  define: kubeezBrowserApiEnvDefine(mode),
+  define: {
+    ...kubeezBrowserApiEnvDefine(mode),
+    // Build-time package version, exposed at runtime for diagnostics.
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
   plugins: [react(), tailwindcss(), seoPlugin(resolvePublicSiteUrl(mode))],
   resolve: {
     alias: {
