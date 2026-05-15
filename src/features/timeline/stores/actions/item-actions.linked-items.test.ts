@@ -93,9 +93,32 @@ describe('linked timeline items', () => {
     unlinkItems(['video-1']);
 
     const items = useItemsStore.getState().items;
-    expect(items.find((item) => item.id === 'video-1')?.linkedGroupId).toBe('video-1');
-    expect(items.find((item) => item.id === 'audio-1')?.linkedGroupId).toBe('audio-1');
-    expect(useSelectionStore.getState().selectedItemIds).toEqual(['video-1', 'audio-1']);
+    const video = items.find((item) => item.id === 'video-1');
+    const audio = items.find((item) => item.id === 'audio-1');
+    expect(video?.linkedGroupId).toBe('video-1');
+    expect(audio?.linkedGroupId).toBe('audio-1');
+    // Embedded audio must be muted on the video so the audio item's fade is
+    // actually audible — otherwise the unfaded video track plays in parallel.
+    expect((video as VideoItem).embeddedAudioMuted).toBe(true);
+    // After unlink, selection is cleared so the user can move each clip
+    // independently without an extra click to break the group selection.
+    expect(useSelectionStore.getState().selectedItemIds).toEqual([]);
+  });
+
+  it('unlinks legacy linked pairs (no linkedGroupId) and mutes embedded video audio', () => {
+    useItemsStore.getState().setItems([
+      makeVideoItem({ linkedGroupId: undefined }),
+      makeAudioItem({ linkedGroupId: undefined }),
+    ]);
+
+    unlinkItems(['video-1']);
+
+    const items = useItemsStore.getState().items;
+    const video = items.find((item) => item.id === 'video-1');
+    const audio = items.find((item) => item.id === 'audio-1');
+    expect(video?.linkedGroupId).toBe('video-1');
+    expect(audio?.linkedGroupId).toBe('audio-1');
+    expect((video as VideoItem).embeddedAudioMuted).toBe(true);
   });
 
   it('plain delete removes a linked pair when one member is targeted', () => {

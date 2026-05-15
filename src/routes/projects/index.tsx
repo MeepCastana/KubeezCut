@@ -74,6 +74,7 @@ function ProjectsIndex() {
   const [destinationDir, setDestinationDir] = useState<FileSystemDirectoryHandle | null>(null);
   const [destinationName, setDestinationName] = useState<string | null>(null);
   const [useProjectsFolder, setUseProjectsFolder] = useState(true); // Create KubeezCutProjects subfolder
+  const [storageMode, setStorageMode] = useState<'browser' | 'folder'>('browser');
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -126,6 +127,7 @@ function ProjectsIndex() {
     setProjectNameFromFile(extractProjectName(file.name));
     setDestinationDir(null);
     setDestinationName(null);
+    setStorageMode('browser');
     setImportError(null);
     setImportErrorLink(null);
     setImportProgress(null);
@@ -173,20 +175,26 @@ function ProjectsIndex() {
 
   // Step 3: User clicks "Start Import" - begin actual import
   const handleStartImport = async () => {
-    if (!pendingImportFile || !destinationDir) return;
+    if (!pendingImportFile) return;
+    if (storageMode === 'folder' && !destinationDir) return;
 
     setIsImporting(true);
     setImportProgress({ percent: 0, stage: 'validating' });
 
     try {
-      // If useProjectsFolder is enabled, create/get the KubeezCutProjects subfolder first
-      let finalDestination = destinationDir;
-      if (useProjectsFolder) {
-        try {
-          finalDestination = await destinationDir.getDirectoryHandle(PROJECTS_FOLDER_NAME, { create: true });
-        } catch (err) {
-          logger.error('Failed to create KubeezCutProjects folder:', err);
-          throw new Error(`Failed to create ${PROJECTS_FOLDER_NAME} folder. Try selecting a different location.`);
+      // Resolve destination based on storage mode.
+      // - 'browser': null → bundle-import-service writes to OPFS.
+      // - 'folder': use the picked directory, optionally nested under KubeezCutProjects.
+      let finalDestination: FileSystemDirectoryHandle | null = null;
+      if (storageMode === 'folder' && destinationDir) {
+        finalDestination = destinationDir;
+        if (useProjectsFolder) {
+          try {
+            finalDestination = await destinationDir.getDirectoryHandle(PROJECTS_FOLDER_NAME, { create: true });
+          } catch (err) {
+            logger.error('Failed to create KubeezCutProjects folder:', err);
+            throw new Error(`Failed to create ${PROJECTS_FOLDER_NAME} folder. Try selecting a different location.`);
+          }
         }
       }
 
@@ -226,6 +234,7 @@ function ProjectsIndex() {
     setProjectNameFromFile(null);
     setDestinationDir(null);
     setDestinationName(null);
+    setStorageMode('browser');
     setImportError(null);
     setImportErrorLink(null);
     setImportProgress(null);
@@ -361,7 +370,7 @@ function ProjectsIndex() {
             </DialogTitle>
             {!importError && !isImporting && pendingImportFile && (
               <DialogDescription>
-                Select where to extract media files
+                Choose where to store media files
               </DialogDescription>
             )}
             {!importError && isImporting && importProgress && (
@@ -417,39 +426,88 @@ function ProjectsIndex() {
                 </div>
               </div>
 
-              {/* Destination selection */}
+              {/* Storage mode selection */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Destination Folder</p>
-                  {!destinationDir && (
-                    <p className="text-xs text-muted-foreground">Use "New Folder" in picker if needed</p>
-                  )}
+                <p className="text-sm font-medium">Where to store media</p>
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2 cursor-pointer p-2 rounded border border-border hover:bg-muted/50">
+                    <input
+                      type="radio"
+                      name="storage-mode"
+                      value="browser"
+                      checked={storageMode === 'browser'}
+                      onChange={() => setStorageMode('browser')}
+                      className="mt-0.5 w-4 h-4 accent-primary"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Browser storage</p>
+                      <p className="text-xs text-muted-foreground">
+                        Keep media inside the app. No folder needed.
+                      </p>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-2 cursor-pointer p-2 rounded border border-border hover:bg-muted/50">
+                    <input
+                      type="radio"
+                      name="storage-mode"
+                      value="folder"
+                      checked={storageMode === 'folder'}
+                      onChange={() => setStorageMode('folder')}
+                      className="mt-0.5 w-4 h-4 accent-primary"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">External folder</p>
+                      <p className="text-xs text-muted-foreground">
+                        Extract media to a folder on your computer.
+                      </p>
+                    </div>
+                  </label>
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start gap-2"
-                  onClick={handleSelectDestination}
-                >
-                  <FolderOpen className="w-4 h-4" />
-                  {destinationName ? (
-                    <span className="truncate">{destinationName}</span>
-                  ) : (
-                    <span className="text-muted-foreground">Select or create folder...</span>
-                  )}
-                </Button>
 
-                {/* KubeezCutProjects subfolder option */}
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useProjectsFolder}
-                    onChange={(e) => setUseProjectsFolder(e.target.checked)}
-                    className="w-4 h-4 rounded border-border accent-primary"
-                  />
-                  <span className="text-sm">
-                    Create in <code className="text-xs bg-muted px-1 py-0.5 rounded">{PROJECTS_FOLDER_NAME}</code> subfolder
-                  </span>
-                </label>
+                {storageMode === 'folder' && (
+                  <div className="space-y-3 pt-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">Destination Folder</p>
+                      {!destinationDir && (
+                        <p className="text-xs text-muted-foreground">Use "New Folder" in picker if needed</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-2"
+                      onClick={handleSelectDestination}
+                    >
+                      <FolderOpen className="w-4 h-4" />
+                      {destinationName ? (
+                        <span className="truncate">{destinationName}</span>
+                      ) : (
+                        <span className="text-muted-foreground">Select or create folder...</span>
+                      )}
+                    </Button>
+
+                    {/* KubeezCutProjects subfolder option */}
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={useProjectsFolder}
+                        onChange={(e) => setUseProjectsFolder(e.target.checked)}
+                        className="w-4 h-4 rounded border-border accent-primary"
+                      />
+                      <span className="text-sm">
+                        Create in <code className="text-xs bg-muted px-1 py-0.5 rounded">{PROJECTS_FOLDER_NAME}</code> subfolder
+                      </span>
+                    </label>
+
+                    {destinationDir && !importError && (
+                      <div className="p-3 bg-muted/50 rounded-lg border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">Media will be saved to:</p>
+                        <p className="text-sm font-semibold text-foreground break-all">
+                          {getFullDestinationPath()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {importError && (
                   <div>
@@ -464,14 +522,6 @@ function ProjectsIndex() {
                     )}
                   </div>
                 )}
-                {destinationDir && !importError && (
-                  <div className="p-3 bg-muted/50 rounded-lg border border-border">
-                    <p className="text-xs text-muted-foreground mb-1">Media will be saved to:</p>
-                    <p className="text-sm font-semibold text-foreground break-all">
-                      {getFullDestinationPath()}
-                    </p>
-                  </div>
-                )}
               </div>
 
               <DialogFooter className="gap-2 sm:gap-0">
@@ -480,7 +530,7 @@ function ProjectsIndex() {
                 </Button>
                 <Button
                   onClick={handleStartImport}
-                  disabled={!destinationDir}
+                  disabled={storageMode === 'folder' && !destinationDir}
                 >
                   Start Import
                 </Button>

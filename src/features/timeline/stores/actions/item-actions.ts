@@ -336,19 +336,25 @@ export function unlinkItems(ids: string[]): void {
     }
   }
 
-  const linkedItems = items.filter((item) => unlinkIds.has(item.id) && item.linkedGroupId);
-  if (linkedItems.length === 0) return;
+  // Include legacy linked items (no `linkedGroupId`, matched via originId/mediaId).
+  // Without this, unlink silently no-ops and the video's embedded audio keeps
+  // playing alongside the audio companion — making any audio fade applied to
+  // the audio item inaudible because the unfaded embedded track dominates.
+  const linkedItems = items.filter((item) => unlinkIds.has(item.id));
+  if (linkedItems.length <= 1) return;
 
-  // Detect video items that have a linked audio companion — their embedded audio
-  // should be muted after unlinking so it doesn't start playing when the audio is deleted.
+  // Detect video items that have a linked audio companion in their linked group —
+  // their embedded audio should be muted after unlinking so it doesn't start playing
+  // when the audio is decoupled. Use `getLinkedItems` so legacy and modern groups
+  // both resolve correctly.
   const videoIdsWithAudioCompanion = new Set<string>();
   for (const item of linkedItems) {
-    if (item.type === 'video') {
-      const hasAudio = linkedItems.some(
-        (other) => other.type === 'audio' && other.linkedGroupId === item.linkedGroupId,
-      );
-      if (hasAudio) videoIdsWithAudioCompanion.add(item.id);
-    }
+    if (item.type !== 'video') continue;
+    const siblings = getLinkedItems(items, item.id);
+    const hasAudio = siblings.some(
+      (other) => other.id !== item.id && other.type === 'audio',
+    );
+    if (hasAudio) videoIdsWithAudioCompanion.add(item.id);
   }
 
   execute('UNLINK_ITEMS', () => {
@@ -359,7 +365,9 @@ export function unlinkItems(ids: string[]): void {
         ...(videoIdsWithAudioCompanion.has(item.id) && { embeddedAudioMuted: true }),
       });
     }
-    useSelectionStore.getState().selectItems(linkedItems.map((item) => item.id));
+    // Clear selection so the user can immediately move video/audio independently.
+    // Keeping them selected as a group forced an extra click to deselect first.
+    useSelectionStore.getState().clearSelection();
     useTimelineSettingsStore.getState().markDirty();
   }, { ids: linkedItems.map((item) => item.id) });
 }

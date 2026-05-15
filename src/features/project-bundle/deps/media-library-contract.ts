@@ -4,5 +4,6 @@
  */
 
 export { mediaLibraryService } from '@/features/media-library/services/media-library-service';
+export { opfsService } from '@/features/media-library/services/opfs-service';
 export { generateThumbnail } from '@/features/media-library/utils/thumbnail-generator';
 export { computeContentHashFromBuffer } from '@/features/media-library/utils/content-hash';

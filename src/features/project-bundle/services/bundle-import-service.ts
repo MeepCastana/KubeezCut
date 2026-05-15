@@ -2,8 +2,9 @@
  * Project Bundle Import Service
  *
  * Imports a .kubeez.zip bundle (ZIP archive) and creates a project with media.
- * Media files are extracted to a user-selected directory and referenced via
- * FileSystemFileHandle for local-first storage.
+ * Media files are extracted to either a user-selected directory (referenced via
+ * FileSystemFileHandle) or to OPFS (browser-private storage) when no directory
+ * is provided.
  */
 
 import { unzip } from 'fflate';
@@ -24,8 +25,9 @@ import {
   associateMediaWithProject,
   updateProject,
 } from '@/infrastructure/storage/indexeddb';
-import { generateThumbnail } from '@/features/project-bundle/deps/media-library';
+import { generateThumbnail, opfsService } from '@/features/project-bundle/deps/media-library';
 import { createLogger } from '@/shared/logging/logger';
+import { CURRENT_SCHEMA_VERSION } from '@/domain/projects/migrations';
 import { fileSystemService } from './file-system-service';
 import { restoreTimelineFromBundle } from './bundle-timeline';
 
@@ -35,18 +37,22 @@ const logger = createLogger('BundleImportService');
  * Import a project bundle
  *
  * @param file - The .kubeez.zip bundle file to import
- * @param destinationDirectory - Directory where media files will be extracted (must be provided by caller)
+ * @param destinationDirectory - Directory where media files will be extracted.
+ *   Pass `null` to extract media into OPFS (browser-private storage) — useful
+ *   when the user doesn't want to pick a folder or the File System Access API
+ *   is unavailable.
  * @param options - Import options (new name, etc.)
  * @param onProgress - Progress callback
  * @returns Import result with project and media counts
  */
 export async function importProjectBundle(
   file: File,
-  destinationDirectory: FileSystemDirectoryHandle,
+  destinationDirectory: FileSystemDirectoryHandle | null,
   options: Omit<ImportOptions, 'destinationDirectory'> = {},
   onProgress?: (progress: ImportProgress) => void
 ): Promise<ImportResult> {
   const conflicts: ImportConflict[] = [];
+  const useOpfs = destinationDirectory === null;
 
   // Step 1: Validate bundle
   onProgress?.({ percent: 0, stage: 'validating' });
@@ -64,12 +70,14 @@ export async function importProjectBundle(
     new TextDecoder().decode(files['project.json'])
   ) as BundleProject;
 
-  // Step 3: Create project subdirectory in destination
+  // Step 3: Create project subdirectory in destination (only for handle-based imports)
   const projectName = options.newProjectName ?? bundleProject.name;
-  const projectDir = await fileSystemService.getOrCreateSubdirectory(
-    destinationDirectory,
-    projectName
-  );
+  const projectDir = useOpfs
+    ? null
+    : await fileSystemService.getOrCreateSubdirectory(
+        destinationDirectory,
+        projectName
+      );
 
   // Step 5: Extract and import media files
   onProgress?.({ percent: 20, stage: 'extracting' });
@@ -96,21 +104,79 @@ export async function importProjectBundle(
         continue;
       }
 
-      // Generate unique filename if needed
-      const uniqueFileName = await fileSystemService.getUniqueFileName(
-        projectDir,
-        entry.fileName
-      );
-
-      // Write file to destination directory
-      const fileHandle = await fileSystemService.writeFile(
-        projectDir,
-        uniqueFileName,
-        fileData
-      );
-
       // Create new media ID
       const newMediaId = crypto.randomUUID();
+
+      let mediaMetadata: MediaMetadata;
+      let extractedFileForThumbnail: File;
+
+      if (projectDir) {
+        // Handle-based import: write file to the user-selected directory
+        const uniqueFileName = await fileSystemService.getUniqueFileName(
+          projectDir,
+          entry.fileName
+        );
+
+        const fileHandle = await fileSystemService.writeFile(
+          projectDir,
+          uniqueFileName,
+          fileData
+        );
+
+        extractedFileForThumbnail = await fileHandle.getFile();
+
+        mediaMetadata = {
+          id: newMediaId,
+          storageType: 'handle',
+          fileHandle,
+          fileName: uniqueFileName,
+          fileSize: entry.fileSize,
+          mimeType: entry.mimeType,
+          contentHash: entry.sha256,
+          duration: entry.metadata.duration,
+          width: entry.metadata.width,
+          height: entry.metadata.height,
+          fps: entry.metadata.fps,
+          codec: entry.metadata.codec,
+          bitrate: entry.metadata.bitrate,
+          tags: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+      } else {
+        // OPFS-based import: write file to browser-private storage
+        const opfsPath = `content/${newMediaId.slice(0, 2)}/${newMediaId.slice(2, 4)}/${newMediaId}/data`;
+        // fflate's Uint8Array may be a non-resizable view; copy into a fresh ArrayBuffer for OPFS
+        const buffer = fileData.buffer.slice(
+          fileData.byteOffset,
+          fileData.byteOffset + fileData.byteLength
+        ) as ArrayBuffer;
+        await opfsService.saveFile(opfsPath, buffer);
+
+        extractedFileForThumbnail = new File([buffer], entry.fileName, {
+          type: entry.mimeType,
+        });
+
+        mediaMetadata = {
+          id: newMediaId,
+          storageType: 'opfs',
+          opfsPath,
+          fileName: entry.fileName,
+          fileSize: entry.fileSize,
+          mimeType: entry.mimeType,
+          contentHash: entry.sha256,
+          duration: entry.metadata.duration,
+          width: entry.metadata.width,
+          height: entry.metadata.height,
+          fps: entry.metadata.fps,
+          codec: entry.metadata.codec,
+          bitrate: entry.metadata.bitrate,
+          tags: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+      }
+
       mediaIdMap.set(entry.originalId, newMediaId);
 
       // Generate thumbnail from the extracted file
@@ -120,11 +186,9 @@ export async function importProjectBundle(
         currentFile: entry.fileName,
       });
 
-      let thumbnailId: string | undefined;
       try {
-        const extractedFile = await fileHandle.getFile();
-        const thumbnailBlob = await generateThumbnail(extractedFile);
-        thumbnailId = crypto.randomUUID();
+        const thumbnailBlob = await generateThumbnail(extractedFileForThumbnail);
+        const thumbnailId = crypto.randomUUID();
 
         const thumbnailData: ThumbnailData = {
           id: thumbnailId,
@@ -135,6 +199,7 @@ export async function importProjectBundle(
           height: 180,
         };
         await saveThumbnail(thumbnailData);
+        mediaMetadata.thumbnailId = thumbnailId;
       } catch (thumbnailError) {
         logger.warn(
           `Failed to generate thumbnail for ${entry.fileName}:`,
@@ -142,27 +207,6 @@ export async function importProjectBundle(
         );
         // Continue without thumbnail - not critical
       }
-
-      // Create media metadata entry
-      const mediaMetadata: MediaMetadata = {
-        id: newMediaId,
-        storageType: 'handle',
-        fileHandle,
-        fileName: uniqueFileName,
-        fileSize: entry.fileSize,
-        mimeType: entry.mimeType,
-        contentHash: entry.sha256,
-        duration: entry.metadata.duration,
-        width: entry.metadata.width,
-        height: entry.metadata.height,
-        fps: entry.metadata.fps,
-        codec: entry.metadata.codec,
-        bitrate: entry.metadata.bitrate,
-        thumbnailId,
-        tags: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
 
       await createMedia(mediaMetadata);
       imported++;
@@ -194,9 +238,12 @@ export async function importProjectBundle(
     duration: bundleProject.duration,
     thumbnail: bundleProject.thumbnail,
     metadata: bundleProject.metadata,
-    // Store the project folder handle for smarter relinking and path display
-    rootFolderHandle: projectDir,
-    rootFolderName: projectName,
+    schemaVersion: bundleProject.schemaVersion ?? CURRENT_SCHEMA_VERSION,
+    // Store the project folder handle for smarter relinking and path display.
+    // OPFS imports don't have an external root folder.
+    ...(projectDir
+      ? { rootFolderHandle: projectDir, rootFolderName: projectName }
+      : {}),
     timeline: restoreTimelineFromBundle(bundleProject.timeline, mediaIdMap),
   };
 

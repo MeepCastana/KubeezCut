@@ -3,12 +3,21 @@ import type { TimelineItem } from '@/types/timeline';
 import { supportsVisualFadeControls } from './visual-fade-items';
 
 describe('supportsVisualFadeControls', () => {
-  it('returns true for video and compound video segments', () => {
+  it('returns true for video, image, and compound video segments', () => {
     const videoItem = {
       id: 'video-1',
       type: 'video',
       trackId: 'track-video',
       label: 'Video clip',
+      from: 0,
+      durationInFrames: 120,
+      mediaId: 'media-1',
+    } as TimelineItem;
+    const imageItem = {
+      id: 'image-1',
+      type: 'image',
+      trackId: 'track-video',
+      label: 'Image clip',
       from: 0,
       durationInFrames: 120,
       mediaId: 'media-1',
@@ -26,6 +35,7 @@ describe('supportsVisualFadeControls', () => {
     } as TimelineItem;
 
     expect(supportsVisualFadeControls(videoItem)).toBe(true);
+    expect(supportsVisualFadeControls(imageItem)).toBe(true);
     expect(supportsVisualFadeControls(compositionItem)).toBe(true);
   });
 
