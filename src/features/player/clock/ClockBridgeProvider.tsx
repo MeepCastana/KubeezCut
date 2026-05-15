@@ -121,9 +121,7 @@ export function ClockBridgeProvider({
   inFrame = null,
   outFrame = null,
   onEnded,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   initiallyMuted: _initiallyMuted,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onVolumeChange: _onVolumeChange,
 }: ClockBridgeProviderProps): React.ReactElement {
   const clockRef = useRef<Clock | null>(null);

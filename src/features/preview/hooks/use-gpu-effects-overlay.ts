@@ -38,7 +38,6 @@ export function shouldForceContinuousPreviewOverlay(
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useGpuEffectsOverlay(..._args: unknown[]) {
   const [needsOverlay, setNeedsOverlay] = useState(false);
 

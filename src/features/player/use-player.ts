@@ -53,7 +53,6 @@ export function usePlayer(
   } = {},
 ): UsePlayerMethods {
   // loop and onEnded are reserved for future use in the playback loop
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { loop: _loop = false, onEnded: _onEnded } = options;
 
   // Get context values
