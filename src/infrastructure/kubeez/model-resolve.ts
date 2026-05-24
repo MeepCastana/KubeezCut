@@ -22,12 +22,14 @@ import {
   mapMusicEngineToModelId,
   mapSeedance2ToModelId,
   mapVeo31ToModelId,
+  mapGeminiOmniToModelId,
   mapWan25ToModelId,
   mapZImageTierToModelId,
   parseKling26Variant,
   parseKling30Variant,
   parseSeedance2Variant,
   parseVeo31Variant,
+  parseGeminiOmniVariant,
   parseWan25Variant,
   type KubeezModelFamilyRegistryEntry,
   type KubeezModelSettings,
@@ -109,6 +111,16 @@ export function resolveGenerationModelId(params: ResolveGenerationParams): strin
   if (entry.baseCardId === 'veo3-1') {
     const v = settings.veo31 ?? { tier: 'fast' as const, mode: 'text-to-video' as const };
     const id = mapVeo31ToModelId(v);
+    return variants.some((x) => x.model_id === id) ? id : pickFallbackVariantId(variants, id);
+  }
+
+  if (entry.baseCardId === 'gemini-omni-video') {
+    const g = settings.geminiOmni ?? {
+      resolution: 'hd' as const,
+      duration: '6s' as const,
+      videoRef: false,
+    };
+    const id = mapGeminiOmniToModelId(g);
     return variants.some((x) => x.model_id === id) ? id : pickFallbackVariantId(variants, id);
   }
 
@@ -269,6 +281,11 @@ export function resolveSelectionFromConcreteModelId(
     const parsed =
       parseVeo31Variant(concreteModelId) ?? parseVeo31Variant(pickDefaultVariant(variants).model_id);
     if (parsed) settings = { veo31: parsed };
+  } else if (entry.baseCardId === 'gemini-omni-video') {
+    const parsed =
+      parseGeminiOmniVariant(concreteModelId) ??
+      parseGeminiOmniVariant(pickDefaultVariant(variants).model_id);
+    if (parsed) settings = { geminiOmni: parsed };
   } else if (entry.baseCardId === 'wan-2-5') {
     const parsed =
       parseWan25Variant(concreteModelId) ?? parseWan25Variant(pickDefaultVariant(variants).model_id);

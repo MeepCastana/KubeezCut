@@ -464,6 +464,7 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
     modelFamilyItem?.baseCardId === 'kling-3-0' ||
     modelFamilyItem?.baseCardId === 'seedance-2-fast' ||
     modelFamilyItem?.baseCardId === 'veo3-1' ||
+    modelFamilyItem?.baseCardId === 'gemini-omni-video' ||
     modelFamilyItem?.baseCardId === 'wan-2-5';
 
   const registryDedicatedMusicUi = modelFamilyItem?.baseCardId === 'suno-music';
@@ -504,6 +505,11 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
   const veo31 = modelSettings.veo31 ?? {
     tier: 'fast' as const,
     mode: 'text-to-video' as const,
+  };
+  const geminiOmni = modelSettings.geminiOmni ?? {
+    resolution: 'hd' as const,
+    duration: '6s' as const,
+    videoRef: false,
   };
 
   const wan25 = modelSettings.wan25 ?? {
@@ -1138,6 +1144,93 @@ export const KubeezGenerateSelectedModelPanel = memo(function KubeezGenerateSele
               ) : null}
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {modelFamilyItem?.baseCardId === 'gemini-omni-video' ? (
+        <div className="space-y-2.5 border-t border-border/50 pt-3">
+          <div className="space-y-1">
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Resolution</p>
+            <div className="flex flex-wrap gap-1">
+              {(
+                [
+                  { id: 'hd' as const, label: 'HD' },
+                  { id: '4k' as const, label: '4K' },
+                ] as const
+              ).map(({ id, label }) => {
+                const active = geminiOmni.resolution === id;
+                return (
+                  <Button
+                    key={id}
+                    type="button"
+                    size="sm"
+                    variant={active ? 'default' : 'outline'}
+                    disabled={disabled}
+                    className="h-7 min-w-[3.25rem] px-2 text-[11px]"
+                    onClick={() =>
+                      onPatchModelSettings({ geminiOmni: { ...geminiOmni, resolution: id } })
+                    }
+                  >
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Mode</p>
+            <div className="flex flex-wrap gap-1">
+              <Button
+                type="button"
+                size="sm"
+                variant={!geminiOmni.videoRef ? 'default' : 'outline'}
+                disabled={disabled}
+                className="h-7 px-2 text-[11px]"
+                onClick={() => onPatchModelSettings({ geminiOmni: { ...geminiOmni, videoRef: false } })}
+              >
+                Text / Image
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={geminiOmni.videoRef ? 'default' : 'outline'}
+                disabled={disabled}
+                className="h-7 px-2 text-[11px]"
+                onClick={() => onPatchModelSettings({ geminiOmni: { ...geminiOmni, videoRef: true } })}
+              >
+                Video edit
+              </Button>
+            </div>
+          </div>
+          {!geminiOmni.videoRef ? (
+            <div className="space-y-1">
+              <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Duration</p>
+              <div className="flex flex-wrap gap-1">
+                {(['4s', '6s', '8s', '10s'] as const).map((dur) => {
+                  const active = geminiOmni.duration === dur;
+                  return (
+                    <Button
+                      key={dur}
+                      type="button"
+                      size="sm"
+                      variant={active ? 'default' : 'outline'}
+                      disabled={disabled}
+                      className="h-7 min-w-[2.75rem] px-2 text-[11px]"
+                      onClick={() =>
+                        onPatchModelSettings({ geminiOmni: { ...geminiOmni, duration: dur } })
+                      }
+                    >
+                      {dur}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <p className="text-[10px] leading-snug text-muted-foreground">
+              Video edit uses a flat per-clip rate; duration is set by the source clip.
+            </p>
+          )}
         </div>
       ) : null}
 

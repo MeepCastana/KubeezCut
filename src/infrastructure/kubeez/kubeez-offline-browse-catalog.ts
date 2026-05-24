@@ -85,6 +85,14 @@ const OFFLINE_BROWSE_VIDEO_MODELS: KubeezMediaModelOption[] = [
     supportsImageToVideo: true,
   }),
   vid({
+    model_id: 'gemini-omni-video-hd-6s',
+    display_name: 'Gemini Omni Video',
+    provider: 'Google',
+    supportsTextToVideo: true,
+    supportsImageToVideo: true,
+    supports_sound: true,
+  }),
+  vid({
     model_id: 'wan-2-5',
     display_name: 'Wan 2.5',
     provider: 'Alibaba',

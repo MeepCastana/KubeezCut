@@ -49,6 +49,8 @@ export function minReferenceFilesRequired(params: {
 
   if (gen === 'FIRST_AND_LAST_FRAMES_2_VIDEO') return 2;
   if (baseCardId === 'veo3-1' && settings.veo31?.mode === 'first-and-last-frames') return 2;
+  /** Gemini Omni Video — `videoRef` mode requires the source video clip. */
+  if (baseCardId === 'gemini-omni-video' && settings.geminiOmni?.videoRef) return 1;
 
   if (resolvedModelId.startsWith('kling-2-5-image-to-video-pro')) return 2;
 

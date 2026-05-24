@@ -82,6 +82,19 @@ export const KUBEEZ_MODEL_FAMILY_REGISTRY: KubeezModelFamilyRegistryEntry[] = [
     matchModelId: (id) => id.startsWith('veo3-1-'),
   },
   {
+    /**
+     * Gemini Omni Video — Google's multimodal video model with 4K + native audio (29 built-in
+     * voices). API variants: `gemini-omni-video-(hd|4k)(-(4s|6s|8s|10s|video-ref))?`. The
+     * `-video-ref` suffix toggles flat-rate video-edit mode (duration unused); duration variants
+     * are text/image-to-video.
+     */
+    baseCardId: 'gemini-omni-video',
+    mediaKind: 'video',
+    strategy: 'composed',
+    displayName: 'Gemini Omni Video',
+    matchModelId: (id) => id === 'gemini-omni-video' || id.startsWith('gemini-omni-video-'),
+  },
+  {
     baseCardId: 'wan-2-5',
     mediaKind: 'video',
     strategy: 'composed',
@@ -244,6 +257,20 @@ export type KubeezVeo31Settings = {
   mode: KubeezVeo31Mode;
 };
 
+/**
+ * Gemini Omni Video: resolution tier (HD ≈ 720p/1080p, 4K) + duration; the optional `videoRef`
+ * flag swaps the `-{duration}` suffix for `-video-ref` (flat-rate, duration-independent).
+ */
+export type KubeezGeminiOmniResolution = 'hd' | '4k';
+export type KubeezGeminiOmniDuration = '4s' | '6s' | '8s' | '10s';
+
+export type KubeezGeminiOmniSettings = {
+  resolution: KubeezGeminiOmniResolution;
+  duration: KubeezGeminiOmniDuration;
+  /** When true, the resolved model_id uses `-video-ref` instead of `-{duration}`. */
+  videoRef: boolean;
+};
+
 export type KubeezWan25Source = 'text' | 'image';
 export type KubeezWan25Duration = '5s' | '10s';
 export type KubeezWan25Resolution = '720p' | '1080p';
@@ -276,6 +303,7 @@ export type KubeezModelSettings = {
   gpt15ImageQuality?: KubeezGpt15ImageQuality;
   kling25Clip?: KubeezKling25Clip;
   veo31?: KubeezVeo31Settings;
+  geminiOmni?: KubeezGeminiOmniSettings;
   wan25?: KubeezWan25Settings;
   sunoEngine?: KubeezMusicEngine;
   /** P Image Edit: when true (default), maps to `quality: 'turbo'` on POST /v1/generate/media */
@@ -418,6 +446,9 @@ export function defaultModelSettings(
   if (entry.baseCardId === 'veo3-1') {
     return { veo31: { tier: 'fast', mode: 'text-to-video' } };
   }
+  if (entry.baseCardId === 'gemini-omni-video') {
+    return { geminiOmni: { resolution: 'hd', duration: '6s', videoRef: false } };
+  }
   if (entry.baseCardId === 'wan-2-5') {
     return {
       wan25: { useSimpleCatalogId: true, source: 'text', duration: '5s', resolution: '1080p' },
@@ -438,6 +469,7 @@ export function defaultModelSettings(
   if (
     entry.strategy === 'composed' &&
     entry.baseCardId !== 'veo3-1' &&
+    entry.baseCardId !== 'gemini-omni-video' &&
     entry.baseCardId !== 'wan-2-5'
   ) {
     return {
@@ -546,6 +578,28 @@ export function mapVeo31ToModelId(s: KubeezVeo31Settings): string {
 
 export function parseVeo31Variant(modelId: string): KubeezVeo31Settings | null {
   return VEO31_ID_TO_SETTINGS[modelId] ?? null;
+}
+
+const GEMINI_OMNI_VARIANT_RE =
+  /^gemini-omni-video-(hd|4k)(?:-(4s|6s|8s|10s|video-ref))?$/;
+
+export function mapGeminiOmniToModelId(s: KubeezGeminiOmniSettings): string {
+  const suffix = s.videoRef ? '-video-ref' : `-${s.duration}`;
+  return `gemini-omni-video-${s.resolution}${suffix}`;
+}
+
+export function parseGeminiOmniVariant(modelId: string): KubeezGeminiOmniSettings | null {
+  const m = GEMINI_OMNI_VARIANT_RE.exec(modelId);
+  if (!m || !m[1]) return null;
+  const resolution = m[1] as KubeezGeminiOmniResolution;
+  const tail = m[2];
+  if (tail === 'video-ref') {
+    return { resolution, duration: '6s', videoRef: true };
+  }
+  if (tail === '4s' || tail === '6s' || tail === '8s' || tail === '10s') {
+    return { resolution, duration: tail, videoRef: false };
+  }
+  return { resolution, duration: '6s', videoRef: false };
 }
 
 export function mapWan25ToModelId(s: KubeezWan25Settings): string {

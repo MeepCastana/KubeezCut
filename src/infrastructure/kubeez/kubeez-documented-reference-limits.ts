@@ -94,6 +94,14 @@ const LEGACY_REST_PREFIX_RULES: { prefix: string; maxFiles: number }[] = [
   { prefix: 'wan-2-5-image-to-video-', maxFiles: 1 },
   { prefix: 'wan-2-5-text-to-video-', maxFiles: 0 },
   { prefix: 'wan-2-5', maxFiles: 0 },
+  /**
+   * Gemini Omni Video — backend slot accounting is 7 total: video clip = 2, each character = 1,
+   * remainder for image refs. video-ref variants take a single video input (1 ref); duration
+   * variants accept up to 7 image references with no video.
+   */
+  { prefix: 'gemini-omni-video-hd-video-ref', maxFiles: 1 },
+  { prefix: 'gemini-omni-video-4k-video-ref', maxFiles: 1 },
+  { prefix: 'gemini-omni-video-', maxFiles: 7 },
 ];
 
 /**

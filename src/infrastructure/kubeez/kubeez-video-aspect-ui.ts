@@ -72,6 +72,17 @@ export function getVideoAspectUi(
   }
 
 
+  if (base === 'gemini-omni-video') {
+    // Backend defaults aspect_ratio to '16:9'; '9:16' supported via body param.
+    return {
+      options: [
+        { value: '16:9', label: '16:9' },
+        { value: '9:16', label: '9:16' },
+      ],
+      defaultValue: '16:9',
+    };
+  }
+
   if (base === 'wan-2-5') {
     return {
       options: [

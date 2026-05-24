@@ -4,6 +4,7 @@
  * so KubeezCut does not depend on a local KubeezWebsite tree.
  */
 import flux2 from '@/assets/kubeez-model-cards/flux2.webp';
+import geminiOmni from '@/assets/kubeez-model-cards/geminiomni.webp';
 import gpt15 from '@/assets/kubeez-model-cards/gpt1.5.webp';
 import gptImage2 from '@/assets/kubeez-model-cards/gpt-image-2.webp';
 import grokimage from '@/assets/kubeez-model-cards/grokimage.webp';
@@ -39,6 +40,7 @@ const BY_BASE_CARD_ID: Record<string, string> = {
   'kling-2-6-motion': kling26,
   'kling-3-0': kling30,
   'veo3-1': veo31,
+  'gemini-omni-video': geminiOmni,
   'wan-2-5': wan,
   'kling-2-5-i2v': kling25,
   'grok-video': grokvideo,
@@ -109,6 +111,7 @@ function resolveByPrefixHeuristics(id: string): string | undefined {
   if (lower.startsWith('kling-2-5')) return kling25;
 
   if (lower.startsWith('veo3-1')) return veo31;
+  if (lower.startsWith('gemini-omni-video')) return geminiOmni;
   if (lower.startsWith('wan-2-5') || lower === 'wan-2-5') return wan;
 
   if (lower.includes('logo-maker') || lower.startsWith('logo-maker')) return logomaker;

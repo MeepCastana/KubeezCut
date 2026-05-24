@@ -152,6 +152,20 @@ const EXACT: Record<string, Partial<KubeezMediaModelOption>> = {
   'veo3-1-fast-text-to-video': { prompt_max_chars: 5000 },
   'veo3-1-text-to-video': { prompt_max_chars: 5000 },
 
+  // Gemini Omni Video — multimodal (text/image/video → video + native voice). API enums
+  // for the 10 priced variants. Duration is encoded in model_id; aspect/voice/seed are body
+  // fields. `durationOptions` exposed for the dialog.
+  'gemini-omni-video-hd-4s': { prompt_max_chars: 5000, supports_sound: true },
+  'gemini-omni-video-hd-6s': { prompt_max_chars: 5000, supports_sound: true },
+  'gemini-omni-video-hd-8s': { prompt_max_chars: 5000, supports_sound: true },
+  'gemini-omni-video-hd-10s': { prompt_max_chars: 5000, supports_sound: true },
+  'gemini-omni-video-4k-4s': { prompt_max_chars: 5000, supports_sound: true },
+  'gemini-omni-video-4k-6s': { prompt_max_chars: 5000, supports_sound: true },
+  'gemini-omni-video-4k-8s': { prompt_max_chars: 5000, supports_sound: true },
+  'gemini-omni-video-4k-10s': { prompt_max_chars: 5000, supports_sound: true },
+  'gemini-omni-video-hd-video-ref': { prompt_max_chars: 5000, supports_sound: true },
+  'gemini-omni-video-4k-video-ref': { prompt_max_chars: 5000, supports_sound: true },
+
   // Music — form validation (non-custom prompt cap)
   V4: { prompt_max_chars: 400 },
   V4_5: { prompt_max_chars: 400 },
@@ -178,6 +192,7 @@ const PREFIX_RULES: { idPrefix: string; patch: Partial<KubeezMediaModelOption> }
   { idPrefix: 'grok-', patch: { prompt_max_chars: 5000 } },
   { idPrefix: 'veo3-1-', patch: { prompt_max_chars: 5000 } },
   { idPrefix: 'veo3-', patch: { prompt_max_chars: 5000 } },
+  { idPrefix: 'gemini-omni-video-', patch: { prompt_max_chars: 5000, supports_sound: true } },
   { idPrefix: 'flux-2-', patch: { prompt_max_chars: 5000, aspectRatioOptions: [...DEFAULT_IMAGE_ASPECTS] } },
   { idPrefix: 'nano-banana-2-', patch: { prompt_max_chars: 20_000, aspectRatioOptions: [...DEFAULT_IMAGE_ASPECTS] } },
   { idPrefix: 'nano-banana-pro-', patch: { prompt_max_chars: 20_000, aspectRatioOptions: [...DEFAULT_IMAGE_ASPECTS] } },
