@@ -189,11 +189,11 @@ export const MediaGrid = memo(function MediaGrid({
 
   // Main container with dropzone functionality
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Content */}
       {!items && isLoading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-1 py-4">
+          <div className="m-auto flex flex-col items-center gap-4">
             <div className="relative">
               <Loader2 className="w-12 h-12 animate-spin text-primary" />
               <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-primary/20 animate-pulse" />
@@ -205,16 +205,16 @@ export const MediaGrid = memo(function MediaGrid({
           </div>
         </div>
       ) : !items && !hasGridContent ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="text-center max-w-md">
+        <div className="flex flex-1 py-4">
+          <div className="m-auto max-w-md text-center">
             <div
-              className="w-20 h-20 mx-auto mb-6 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-secondary hover:border-primary/50 hover:bg-secondary/80 cursor-pointer transition-colors"
+              className="w-16 h-16 mx-auto mb-3 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-secondary hover:border-primary/50 hover:bg-secondary/80 cursor-pointer transition-colors"
               onClick={handleEmptyStateClick}
             >
-              <Upload className="w-10 h-10 text-muted-foreground" />
+              <Upload className="w-8 h-8 text-muted-foreground" />
             </div>
-            <p className="text-base font-bold text-foreground mb-2 tracking-wide">NO MEDIA FILES</p>
-            <p className="text-sm text-muted-foreground font-light mb-3">
+            <p className="text-base font-bold text-foreground mb-1 tracking-wide">NO MEDIA FILES</p>
+            <p className="text-sm text-muted-foreground font-light mb-2">
               Drag and drop files or click to browse
             </p>
             <div className="flex flex-wrap justify-center gap-2">
