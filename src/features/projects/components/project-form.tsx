@@ -76,6 +76,18 @@ export function ProjectForm({
     );
   }, [resolvedDefaultValues.height, resolvedDefaultValues.width]);
 
+  // Declared after the reset effect on purpose: reset() rewrites the input
+  // value, which collapses any selection made before it runs.
+  useEffect(() => {
+    if (!isEditing) {
+      const el = document.getElementById('name');
+      if (el instanceof HTMLInputElement) {
+        el.focus();
+        el.select();
+      }
+    }
+  }, [isEditing]);
+
   const fps = watch('fps');
   const fpsOptions = useMemo(() => getProjectFpsOptions(fps), [fps]);
 
