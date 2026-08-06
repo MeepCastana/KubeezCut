@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useRouterState } from '@tanstack/react-router';
 import { ExternalLink, Images, Check, X } from 'lucide-react';
 import {
   Dialog,
@@ -11,6 +12,12 @@ import { cn } from '@/shared/ui/cn';
 
 const STORAGE_KEY = 'kubeezcut.kubeezPromo.v1.dismissed';
 const KUBEEZ_HOME = 'https://kubeez.com/';
+
+/**
+ * Task surfaces the promo must not interrupt: creating a project and the
+ * editor itself. The promo waits for the next visit to any other route.
+ */
+const EXCLUDED_PATH_PREFIXES = ['/projects/new', '/editor'];
 
 const FEATURES = [
   'AI video, images & music in one workspace',
@@ -42,12 +49,14 @@ function markDismissed(): void {
  */
 export function KubeezWelcomePromo() {
   const [open, setOpen] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isExcludedRoute = EXCLUDED_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
   useEffect(() => {
-    if (!hasDismissed()) {
+    if (!isExcludedRoute && !hasDismissed()) {
       setOpen(true);
     }
-  }, []);
+  }, [isExcludedRoute]);
 
   const dismiss = useCallback(() => {
     markDismissed();

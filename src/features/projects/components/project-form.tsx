@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from '@tanstack/react-router';
 import {
@@ -110,7 +109,7 @@ export function ProjectForm({
       {/* Header */}
       {!hideHeader && (
         <div className="panel-header border-b border-border">
-          <div className="max-w-3xl mx-auto px-6 py-5">
+          <div className="px-6 py-5">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground mb-1">
               {isEditing ? 'Edit Project' : 'Create New Project'}
             </h1>
@@ -123,17 +122,20 @@ export function ProjectForm({
         </div>
       )}
 
-      {/* Form */}
-      <div className="max-w-3xl mx-auto px-6 py-8">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      {/* Form — container queries so the two-column split depends on the
+          available width, not the viewport (this form also renders inside
+          the narrow edit dialog) */}
+      <div className="@container w-full">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid items-start gap-6 @3xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           {/* Project Details */}
-          <div className="panel-bg border border-border rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-6">
+          <div className="panel-bg border border-border rounded-lg p-5">
+            <div className="flex items-center gap-3 mb-4">
               <div className="h-8 w-1 bg-primary rounded-full" />
               <h2 className="text-lg font-medium text-foreground">Project Details</h2>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* Project Name */}
               <div>
                 <Label htmlFor="name" className="mb-2 block text-foreground">
@@ -168,16 +170,14 @@ export function ProjectForm({
             </div>
           </div>
 
-          <Separator />
-
            {/* Video Settings */}
-           <div className="panel-bg border border-border rounded-lg p-6">
-             <div className="flex items-center gap-3 mb-6">
+           <div className="panel-bg border border-border rounded-lg p-5">
+             <div className="flex items-center gap-3 mb-4">
                <div className="h-8 w-1 bg-primary rounded-full" />
                <h2 className="text-lg font-medium text-foreground">Video Settings</h2>
              </div>
 
-             <div className="space-y-6">
+             <div className="space-y-4">
                {/* Resolution — visual template picker */}
                <div>
                  <p className="text-sm font-medium text-foreground mb-3">Resolution</p>
@@ -242,16 +242,17 @@ export function ProjectForm({
                </div>
              </div>
            </div>
+          </div>
 
-           {/* Actions */}
+          {/* Actions — primary action dominant, Cancel demoted to ghost */}
           <div className="flex gap-3 justify-end">
             {onCancel ? (
-              <Button type="button" variant="outline" size="lg" disabled={isSubmitting} onClick={onCancel}>
+              <Button type="button" variant="ghost" size="lg" disabled={isSubmitting} onClick={onCancel}>
                 Cancel
               </Button>
             ) : (
               <Link to="/projects">
-                <Button type="button" variant="outline" size="lg" disabled={isSubmitting}>
+                <Button type="button" variant="ghost" size="lg" disabled={isSubmitting}>
                   Cancel
                 </Button>
               </Link>

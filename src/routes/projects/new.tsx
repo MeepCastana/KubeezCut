@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { ArrowLeft } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { createLogger } from '@/shared/logging/logger';
 import { ProjectForm } from '@/features/projects/components/project-form';
 import { useCreateProject } from '@/features/projects/hooks/use-project-actions';
@@ -59,9 +61,9 @@ function NewProject() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Header — shares its content width with the form below */}
       <div className="panel-header border-b border-border">
-        <div className="max-w-[1920px] mx-auto px-6 py-5 flex items-center justify-between">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
             <Link to="/projects">
               <KubeezCutLogo withWordmark size="md" className="hover:opacity-80 transition-opacity" />
@@ -71,11 +73,17 @@ function NewProject() {
               Create New Project
             </h1>
           </div>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/projects">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Projects
+            </Link>
+          </Button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-[1920px] mx-auto">
+      <div className="mx-auto max-w-5xl px-6 py-6">
         <ProjectForm
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
