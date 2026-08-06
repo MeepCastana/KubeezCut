@@ -2,8 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { Link } from '@tanstack/react-router';
 import {
   projectFormSchema,
@@ -133,14 +136,13 @@ export function ProjectForm({
             <div className="space-y-5">
               {/* Project Name */}
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
+                <Label htmlFor="name" className="mb-2 block text-foreground">
                   Project Name <span className="text-destructive">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   id="name"
                   type="text"
                   {...register('name')}
-                  className="w-full px-3 py-2 bg-secondary border border-input rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
                   placeholder="Enter project name..."
                 />
                 {errors.name && (
@@ -150,17 +152,13 @@ export function ProjectForm({
 
               {/* Description */}
               <div>
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-medium text-foreground mb-2"
-                >
+                <Label htmlFor="description" className="mb-2 block text-foreground">
                   Description
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   id="description"
                   rows={3}
                   {...register('description')}
-                  className="w-full px-3 py-2 bg-secondary border border-input rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all resize-none"
                   placeholder="Brief description of your project..."
                 />
                 {errors.description && (
@@ -192,12 +190,11 @@ export function ProjectForm({
                  {selectedTemplateId === 'custom' && (
                    <div className="mt-4 flex items-center gap-3">
                      <div className="flex-1">
-                       <label htmlFor="width" className="block text-xs font-medium text-muted-foreground mb-1">Width (px)</label>
-                       <input
+                       <Label htmlFor="width" className="mb-1 block text-xs text-muted-foreground">Width (px)</Label>
+                       <Input
                          id="width"
                          type="number"
                          {...register('width', { valueAsNumber: true })}
-                         className="w-full px-3 py-2 bg-secondary border border-input rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
                           placeholder="1920"
                           min={320}
                         />
@@ -205,12 +202,11 @@ export function ProjectForm({
                       </div>
                       <span className="text-muted-foreground mt-4">×</span>
                       <div className="flex-1">
-                        <label htmlFor="height" className="block text-xs font-medium text-muted-foreground mb-1">Height (px)</label>
-                        <input
+                        <Label htmlFor="height" className="mb-1 block text-xs text-muted-foreground">Height (px)</Label>
+                        <Input
                           id="height"
                           type="number"
                           {...register('height', { valueAsNumber: true })}
-                          className="w-full px-3 py-2 bg-secondary border border-input rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
                           placeholder="1080"
                           min={240}
                         />
@@ -222,9 +218,9 @@ export function ProjectForm({
 
                {/* Frame Rate */}
                <div>
-                 <label htmlFor="fps" className="block text-sm font-medium text-foreground mb-2">
+                 <Label htmlFor="fps" className="mb-2 block text-foreground">
                    Frame Rate
-                 </label>
+                 </Label>
                  <Select
                    value={fps.toString()}
                    onValueChange={(value) => setValue('fps', Number(value), { shouldValidate: true })}
