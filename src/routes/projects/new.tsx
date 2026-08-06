@@ -55,9 +55,15 @@ function NewProject() {
       {/* Header */}
       <div className="panel-header border-b border-border">
         <div className="max-w-[1920px] mx-auto px-6 py-5 flex items-center justify-between">
-          <Link to="/projects">
-            <KubeezCutLogo withWordmark size="md" className="hover:opacity-80 transition-opacity" />
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link to="/projects">
+              <KubeezCutLogo withWordmark size="md" className="hover:opacity-80 transition-opacity" />
+            </Link>
+            <div className="h-6 w-px bg-border" aria-hidden="true" />
+            <h1 className="text-lg font-semibold tracking-tight text-foreground">
+              Create New Project
+            </h1>
+          </div>
         </div>
       </div>
 
