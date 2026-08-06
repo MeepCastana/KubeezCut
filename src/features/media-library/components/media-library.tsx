@@ -922,7 +922,7 @@ export const MediaLibrary = memo(function MediaLibrary({ onMediaSelect }: MediaL
       <div className="flex-1 relative min-h-0">
         <div
           ref={scrollContainerRef}
-          className="relative h-full overflow-y-auto px-4 pb-4 [scrollbar-gutter:stable]"
+          className="relative flex h-full flex-col overflow-y-auto px-4 pb-4 [scrollbar-gutter:stable]"
           onClick={handleScrollContentClick}
           onDragEnter={handleDragEnter}
           onDragOver={handleDragOver}
