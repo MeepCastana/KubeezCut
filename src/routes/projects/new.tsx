@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { createLogger } from '@/shared/logging/logger';
 import { ProjectForm } from '@/features/projects/components/project-form';
@@ -26,6 +26,13 @@ function NewProject() {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createProject = useCreateProject();
+
+  // Computed once on mount: a stable object identity, so ProjectForm's
+  // reset-on-defaultValues-change effect doesn't loop.
+  const defaultValues = useMemo(
+    () => ({ name: `Project ${useProjectStore.getState().projects.length + 1}` }),
+    []
+  );
 
   const handleSubmit = async (data: ProjectFormData) => {
     setIsSubmitting(true);
@@ -69,7 +76,12 @@ function NewProject() {
 
       {/* Content */}
       <div className="max-w-[1920px] mx-auto">
-        <ProjectForm onSubmit={handleSubmit} isSubmitting={isSubmitting} hideHeader={true} />
+        <ProjectForm
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+          hideHeader={true}
+          defaultValues={defaultValues}
+        />
       </div>
     </div>
   );
