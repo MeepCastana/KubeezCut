@@ -168,8 +168,8 @@ vi.mock('@/shared/state/editor-panel-layout-store', () => ({
       tools: 25,
       preview: 50,
       properties: 25,
-      mainContent: 50,
-      timeline: 50,
+      mainContent: 72,
+      timeline: 28,
     },
     setPanel: vi.fn(),
   }),
@@ -259,12 +259,6 @@ vi.mock('@/shared/ui/editor-layout', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/shared/ui/editor-layout')>();
   return {
     ...actual,
-    getEditorLayout: () => ({
-      ...actual.getEditorLayout(),
-      timelineDefaultSize: 35,
-      timelineMinSize: 20,
-      timelineMaxSize: 60,
-    }),
     getEditorLayoutCssVars: () => ({}),
   };
 });
